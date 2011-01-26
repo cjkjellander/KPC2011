@@ -1,0 +1,150 @@
+-module(reversi).
+-export([new_game/1
+         , draw_board/1
+         , piece/3
+         , set_piece/4
+         , move/4
+         , score/1
+         ]).
+
+-define(B, 0).
+-define(W, 1).
+-define(E, -1).
+
+-record(game, {number
+               , board = {16#0000000810000000,
+                          16#0000001008000000}
+               , togo = 0
+               , turns = 0
+               , moves = []
+               , points = {2, 2}
+               }).
+
+new_game(N) ->
+    {ok, #game{number=N}}.
+
+draw_board(#game{} = G) ->
+    io:format(" +--------+~n"),
+    draw_lines(G, 0),
+    io:format(" +--------+~n"
+              "  ABCDEFGH~n").
+
+draw_lines(_, 8) -> ok;
+draw_lines(#game{} = G, Y) ->
+    io:format("~c|~s~n", [$1 + Y, draw_line(G, 0, Y)]),
+    draw_lines(G, Y+1).
+
+draw_line(_, 8, _) -> "|";
+draw_line(#game{} = G, X, Y) ->
+    [draw_point(G, X, Y) | draw_line(G, X+1, Y)].
+
+draw_point(#game{board = Board}, X, Y) ->
+    case piece(Board, X, Y) of
+        ?B -> $B;
+        ?W -> $W;
+        ?E -> $.;
+        _  -> erlang:error({board_inconsistent, Board})
+    end.
+
+piece(_, X, Y) when X>7; X<0; Y>7; Y<0 -> ?E;
+piece({Black, White}, X, Y) ->
+    case {Black band bit_set(X,Y) > 0,
+          White band bit_set(X,Y) > 0} of
+        {false, false} -> ?E;
+        {true,  false} -> ?B;
+        {false, true}  -> ?W;
+        {true,  true}  -> incosistent_board
+    end.
+
+set_piece(_, X, Y, _) when X>7; X<0; Y>7; Y<0 ->
+    {error, {outside_board, X, Y}};
+set_piece({Black, White}, X, Y, ?B) ->
+    {Black bor bit_set(X, Y),
+     White band bnot bit_set(X, Y)};
+set_piece({Black, White}, X, Y, ?W) ->
+    {Black band bnot bit_set(X, Y),
+     White bor bit_set(X, Y)}.
+
+
+bit_set(X, Y) ->
+    1 bsl (8*Y + X).
+
+move(#game{} = G, X, Y, _) when X>7; X<0; Y>7; Y<0 ->
+    {error, {illegal_move, G}};
+move(#game{togo = Who, board = B} = G, X, Y, Who) when Who =:= ?B orelse
+                                                       Who =:= ?W ->
+    case piece(B, X, Y) of
+        ?E -> maybe_move(G, X, Y, Who);
+        _  -> {error, {illegal_move, G}}
+    end;
+move(#game{} = G,_,_,_) ->
+    {error, {illegal_move, G}}.
+
+maybe_move(#game{togo = Who, board = B} = G, X, Y, Who) ->
+    F = fun({Xd, Yd}, BA) ->
+                find_start(BA, X+Xd, Y+Yd, Who, Xd, Yd,
+                           set_piece(BA, X, Y, Who))
+        end,
+    B1 = lists:foldl(F, B, directions()),
+    case B =/= B1 of
+        true -> do_move(G, X, Y, Who, B1);
+        _    -> {error, {illegal_move, G}}
+    end.
+
+do_move(#game{board = OldBoard, turns = T, moves = M} = G,
+        X, Y, Who, NewBoard) ->
+    Score = score(NewBoard),
+    {ok, G#game{board = NewBoard
+                , togo = other_guy(Who)
+                , moves = [{T+1, X, Y, OldBoard}|M]
+                , turns = T+1
+                , points = Score}}.
+
+find_start(Board, X, Y, Who, Xd, Yd, AccB) ->
+    case piece(Board, X, Y) =/= other_guy(Who) of
+        true  -> Board;
+        false -> find_flip(Board, X, Y, Who, Xd, Yd, AccB)
+    end.
+
+find_flip(Board, X, Y, Who, Xd, Yd, AccB) ->
+    Other = other_guy(Who),
+    case piece(Board, X, Y) of
+        ?E    -> Board;
+        Who   -> set_piece(AccB, X, Y, Who);
+        Other -> find_flip(Board, X+Xd, Y+Yd, Who, Xd, Yd,
+                           set_piece(AccB, X, Y, Who))
+    end.
+
+other_guy(?B) -> ?W;
+other_guy(?W) -> ?B.
+
+directions() ->
+    [{   1,  0}
+     , { 1,  1}
+     , { 0,  1}
+     , {-1,  1}
+     , {-1,  0}
+     , {-1, -1}
+     , { 0, -1}
+     , { 1, -1}
+    ].
+
+score({Black, White}) ->
+    case consistent({Black, White}) of
+        true ->
+            {count_ones(Black), count_ones(White)};
+        _ -> erlang:error({board_incosistent, {Black, White}})
+    end.
+
+consistent({Black, White}) ->
+    (Black band White) =:= 0.
+
+count_ones(I) ->
+    count_ones(I, 0).
+
+count_ones(0, Ones) -> Ones;
+count_ones(I, Ones) ->
+    case I band 1 of
+        1 -> count_ones(I bsr 1, Ones+1);
+        0 -> count_ones(I bsr 1, Ones)
+    end.
