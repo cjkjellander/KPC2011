@@ -5,6 +5,11 @@
          , set_piece/4
          , move/4
          , score/1
+         , check_avail/2
+         , move_check/1
+         , winner/1
+         , pname/1
+         , rand_play/1
          ]).
 
 -define(B, 0).
@@ -71,7 +76,7 @@ bit_set(X, Y) ->
 
 move(#game{} = G, X, Y, _) when X>7; X<0; Y>7; Y<0 ->
     {error, {illegal_move, G}};
-move(#game{togo = Who, board = B} = G, X, Y, Who) when Who =:= ?B orelse
+move(#game{board = B} = G, X, Y, Who) when Who =:= ?B orelse
                                                        Who =:= ?W ->
     case piece(B, X, Y) of
         ?E -> maybe_move(G, X, Y, Who);
@@ -80,7 +85,7 @@ move(#game{togo = Who, board = B} = G, X, Y, Who) when Who =:= ?B orelse
 move(#game{} = G,_,_,_) ->
     {error, {illegal_move, G}}.
 
-maybe_move(#game{togo = Who, board = B} = G, X, Y, Who) ->
+maybe_move(#game{board = B} = G, X, Y, Who) ->
     F = fun({Xd, Yd}, BA) ->
                 find_start(BA, X+Xd, Y+Yd, Who, Xd, Yd,
                            set_piece(BA, X, Y, Who))
@@ -148,3 +153,65 @@ count_ones(I, Ones) ->
         1 -> count_ones(I bsr 1, Ones+1);
         0 -> count_ones(I bsr 1, Ones)
     end.
+
+check_avail(#game{} = G, Who) ->
+    [{X, Y, GN} || X <- [0,1,2,3,4,5,6,7],
+                   Y <- [0,1,2,3,4,5,6,7],
+                   case move(G, X, Y, Who) of
+                       {ok, GN} -> true;
+                       GN -> false
+                   end].
+
+move_check(#game{togo = Who} = G) ->
+    O = other_guy(Who),
+    case check_avail(G, Who) of
+        [] -> case check_avail(G, O) of
+                  [] -> {done, G, winner(G)};
+                  M1 -> {switch, G#game{togo=O}, M1}
+              end;
+        M2 -> {go, G, M2}
+    end.
+
+winner(#game{board = B}) ->
+    {Bl, Wh} = score(B),
+    case X=Bl - Wh of
+        X when X>0 -> {?B, Bl, Wh};
+        X when X<0 -> {?W, Bl, Wh};
+        _   -> {?E, Bl, Wh}
+    end.
+
+rand_play(N) ->
+    {ok, G} = new_game(N),
+    rand_loop(G).
+
+rand_loop(#game{togo=Who} = G) ->
+    draw_board(G),
+    case move_check(G) of
+        {done, G, {Win, B, W}} ->
+            io:format("~n~s wins! Black: ~p, White: ~p~n",
+                      [pname(Win), B, W]);
+        {go, _, M} ->
+            {X,Y,GN} = rand_pick(M),
+            show_move(G, X, Y, Who),
+            rand_loop(GN);
+        {switch, _, M} ->
+            {X,Y,GN} = rand_pick(M),
+            show_move(G, X, Y, other_guy(Who)),
+            rand_loop(GN)
+    end.
+
+rand_pick(L) ->
+    Len = length(L),
+    lists:nth(random:uniform(Len), L).
+
+show_move(G, X, Y, Who) ->
+    io:format("B: ~p W: ~p~n~n~s plays: ~c~c~n~n",
+              [element(?B+1, G#game.points),
+               element(?W+1, G#game.points),
+               pname(Who), $A+X, $1+Y
+              ]).
+
+
+pname(?B) -> "Black";
+pname(?W) -> "White";
+pname(?E) -> "Nobody".
