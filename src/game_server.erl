@@ -6,7 +6,7 @@
         ]).
 
 %% External Interface
--export([login/2
+-export([login/3
          , move/4
          , status/1
          , opponent/1
@@ -40,20 +40,20 @@ init({N, Lobby}) ->
     GS = #game_state{game=G, lobby=Lobby},
     {ok, setup, GS}.
 
-setup({login, ?B}, Pid, GS) ->
-    {reply, {ok, logged_in}, black_ready, GS#game_state{black=Pid}};
-setup({login, ?W}, Pid, GS) ->
-    {reply, {ok, logged_in}, white_ready, GS#game_state{white=Pid}};
+setup({login, ?B, Module}, Pid, GS) ->
+    {reply, {ok, logged_in}, black_ready, GS#game_state{black={Pid, Module}}};
+setup({login, ?W, Module}, Pid, GS) ->
+    {reply, {ok, logged_in}, white_ready, GS#game_state{white={Pid, Module}}};
 setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
-black_ready({login, ?W}, Pid, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{white=Pid}};
+black_ready({login, ?W, Module}, Pid, GS) ->
+    {reply, {ok, logged_in}, play, GS#game_state{white={Pid, Module}}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
-white_ready({login, ?B}, Pid, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{black=Pid}};
+white_ready({login, ?B, Module}, Pid, GS) ->
+    {reply, {ok, logged_in}, play, GS#game_state{black={Pid, Module}}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
@@ -65,20 +65,25 @@ play({move, Who, X, Y}, Pid, #game_state{game=#game{togo=Who}} = GS) ->
             {reply, Error, play, GS}
     end.
 
-which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
+which_state(Who, Game, _Pid, #game_state{lobby=L, black={Black, BMod}, white={White, WMod}} = GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {your_move, Game}),
+            case that_guy(GS, Who) of
+                Black -> BMod:your_move(Black, Game);
+                White -> WMod:your_move(White, Game)
+            end,
             {reply, {ok, please_wait}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {nothing_to_do, Game}),
+            case that_guy(GS, Who) of
+                Black -> BMod:nothing_to_do(Black, Game);
+                White -> WMod:nothing_to_do(White, Game)
+            end,
             {reply, {your_move, NewGame#game.board}, play, GS#game_state{game=Game}};
         {done, G, Winner} ->
+            %% FIXME: Use the lobby server interface!
             gen_server:cast(L, {game_over, G, Winner}),
-            gen_server:cast(that_guy(GS, Who),
-                            {game_over, G, Winner}),
+            BMod:game_over(Black, G, Winner),
+            WMod:game_over(White, G, Winner),
             {stop, {game_over, G, Winner}, GS#game_state{game=G}}
     end.
 
@@ -106,9 +111,9 @@ handle_info(_Info, StateName, StateData) ->
 
 handle_sync_event(game_status, _From, StateName, GS) ->
     {reply, GS#game_state.game, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
+handle_sync_event(opponent, From, StateName, #game_state{black = {From, _}, white = {Opponent, _}} = GS) ->
     {reply, Opponent, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
+handle_sync_event(opponent, From, StateName, #game_state{black = {Opponent, _}, white = {From, _}} = GS) ->
     {reply, Opponent, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
@@ -119,8 +124,8 @@ terminate(Reason, _, #game_state{lobby=L} = GS) ->
 
 %% Interface functions
 
-login(GameServer, Color) ->
-    gen_fsm:sync_send_event(GameServer, {login, Color}).
+login(GameServer, Color, Module) ->
+    gen_fsm:sync_send_event(GameServer, {login, Color, Module}).
 
 move(GameServer, Color, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Color, X, Y}).
