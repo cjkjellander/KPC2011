@@ -5,6 +5,13 @@
 -export([start_link/1
         ]).
 
+%% External Interface
+-export([login/2
+         , move/4
+         , status/1
+         , opponent/1
+        ]).
+
 % Internal Interface
 -export([init/1
          , code_change/4
@@ -19,13 +26,6 @@
          , play/3
          , this_guy/2
          , p2a/1
-        ]).
-
-%% External Interface
--export([login/2
-         , move/4
-         , status/1
-         , opponent/1
         ]).
 
 -include("../include/reversi.hrl").
