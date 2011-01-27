@@ -21,6 +21,13 @@
          , p2a/1
         ]).
 
+%% External Interface
+-export([login/2
+         , move/4
+         , status/1
+         , opponent/1
+        ]).
+
 -include("../include/reversi.hrl").
 
 -record(game_state, {game, black, white, lobby}).
@@ -97,8 +104,29 @@ handle_event(_Event, StateName, StateData) ->
 handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
+handle_sync_event(game_status, _From, StateName, GS) ->
+    {reply, GS#game_state.game, StateName, GS};
+handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
+    {reply, Opponent, StateName, GS};
+handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
+    {reply, Opponent, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
 terminate(Reason, _, #game_state{lobby=L} = GS) ->
     gen_server:cast(L, {crash, Reason, GS}).
+
+
+%% Interface functions
+
+login(GameServer, Color) ->
+    gen_fsm:sync_send_event(GameServer, {login, Color}).
+
+move(GameServer, Color, X, Y) ->
+    gen_fsm:sync_send_event(GameServer, {move, Color, X, Y}).
+
+status(GameServer) ->
+    gen_fsm:sync_send_all_event(GameServer, game_status).
+
+opponent(GameServer) ->
+    gen_fsm:sync_send_all_event(GameServer, opponent).
