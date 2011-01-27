@@ -7,7 +7,7 @@
 
 %% External Interface
 -export([login/2
-         , move/4
+         , move/3
          , status/1
          , opponent/1
         ]).
@@ -57,13 +57,17 @@ white_ready({login, ?B}, Pid, GS) ->
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
-play({move, Who, X, Y}, Pid, #game_state{game=#game{togo=Who}} = GS) ->
+play({move, X, Y}, Pid, #game_state{game=#game{togo=Who}, black=B, white=W} = GS)
+  when Pid =:= B andalso Who =:= ?B orelse
+       Pid =:= W andalso Who =:= ?W ->
     case reversi:move(GS#game_state.game, X, Y, Who) of
         {ok, NewG} ->
             which_state(Who, NewG, Pid, GS);
         Error ->
             {reply, Error, play, GS}
-    end.
+    end;
+play(_, _Pid, GS) ->
+    {reply, {error, imsorrydavecantdothat}, play, GS}.
 
 which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
     case reversi:move_check(Game) of
@@ -122,8 +126,8 @@ terminate(Reason, _, #game_state{lobby=L} = GS) ->
 login(GameServer, Color) ->
     gen_fsm:sync_send_event(GameServer, {login, Color}).
 
-move(GameServer, Color, X, Y) ->
-    gen_fsm:sync_send_event(GameServer, {move, Color, X, Y}).
+move(GameServer, X, Y) ->
+    gen_fsm:sync_send_event(GameServer, {move, X, Y}).
 
 status(GameServer) ->
     gen_fsm:sync_send_all_state_event(GameServer, game_status).
