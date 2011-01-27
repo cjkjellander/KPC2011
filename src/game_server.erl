@@ -33,7 +33,7 @@
 -record(game_state, {game, black, white, lobby}).
 
 start_link({N, Lobby}) ->
-    gen_fsm:start_link(?MODULE, [{N, Lobby}], []).
+    gen_fsm:start_link(?MODULE, {N, Lobby}, []).
 
 init({N, Lobby}) ->
     G = reversi:new_game(N),
@@ -131,7 +131,7 @@ move(GameServer, Color, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Color, X, Y}).
 
 status(GameServer) ->
-    gen_fsm:sync_send_all_event(GameServer, game_status).
+    gen_fsm:sync_send_all_state_event(GameServer, game_status).
 
 opponent(GameServer) ->
-    gen_fsm:sync_send_all_event(GameServer, opponent).
+    gen_fsm:sync_send_all_state_event(GameServer, opponent).
