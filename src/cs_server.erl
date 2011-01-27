@@ -11,7 +11,7 @@
         , code_change/3
         ]).
 
--record(state, {lsock}).
+-record(state, {lsock, user}).
 
 start_link(LSock) ->
   gen_server:start_link(?MODULE, [LSock], []).
@@ -43,5 +43,42 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 handle_data(Socket, RawData, State) ->
-  gen_tcp:send(Socket, RawData),
-  State.
+  {Response, NewState} = handler(RawData, State),
+  gen_tcp:send(Socket, Response),
+  NewState.
+
+handler(RawData, State) ->
+  Msg = parse_data(RawData),
+  {Response, NewState} = case Msg of
+                           {login,
+                            [{username, Username},{password, Passwd}]} ->
+                             % validate user, update state
+                             case login(Username, Passwd) of
+                               true  ->
+                                 {"ok.\n", State#state{user = Username}};
+                               false ->
+                                 {"false.\n", State}
+                             end;
+                           {register,
+                            [{username, Username},{password, Passwd}]} ->
+                             case register_user(Username, Passwd) of
+                               true  ->
+                                 {"ok.\n", State#state{user = Username}};
+                               false ->
+                                 {"false.\n", State}
+                             end;
+                           _  ->
+                             {"false.\n", State}
+                         end,
+  {Response, NewState}.
+
+parse_data(RawData) ->
+  {ok, Tokens, _} = erl_scan:string(RawData),
+  {ok, Term} = erl_parse:parse_term(Tokens),
+  Term.
+
+login(_Username, _Passwd) ->
+  true.
+
+register_user(_Username, _Passwd) ->
+  true.
