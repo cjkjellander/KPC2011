@@ -4,6 +4,7 @@
   {modules, [ cs_app
             , cs_sup
             , cs_server
+            , cs_db
             ]},
   {registered, [cs_sup]},
   {applications, [kernel, stdlib]},
