@@ -44,7 +44,18 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 handle_data(Socket, RawData, State) ->
   {Response, NewState} = handler(RawData, State),
-  gen_tcp:send(Socket, Response),
+  case Response of
+    Response when Response =:= login_ok orelse
+                  Response =:= registration_ok ->
+      % login ok, send to fsm
+      gen_tcp:send(Socket, "ok.");
+    login_failed ->
+      gen_tcp:send(Socket, "{error, login_failed}.");
+    registration_failed ->
+      gen_tcp:send(Socket, "{error, registration_failed}.");
+    unknown_command ->
+      gen_tcp:send(Socket, "{error, unknown_command}.")
+  end,
   NewState.
 
 handler(RawData, State) ->
@@ -55,20 +66,20 @@ handler(RawData, State) ->
                              % validate user, update state
                              case login(Username, Passwd) of
                                true  ->
-                                 {"ok.\n", State#state{user = Username}};
+                                 {login_ok, State#state{user = Username}};
                                false ->
-                                 {"false.\n", State}
+                                 {login_failed, State}
                              end;
                            {register,
                             [{username, Username},{password, Passwd}]} ->
                              case register_user(Username, Passwd) of
                                true  ->
-                                 {"ok.\n", State#state{user = Username}};
+                                 {registration_ok, State#state{user = Username}};
                                false ->
-                                 {"false.\n", State}
+                                 {registration_failed, State}
                              end;
                            _  ->
-                             {"false.\n", State}
+                             {unknown_command, State}
                          end,
   {Response, NewState}.
 
