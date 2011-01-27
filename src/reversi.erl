@@ -101,7 +101,7 @@ do_move(#game{board = OldBoard, turns = T, moves = M} = G,
     Score = score(NewBoard),
     {ok, G#game{board = NewBoard
                 , togo = other_guy(Who)
-                , moves = [{T+1, X, Y, OldBoard}|M]
+                , moves = [{T+1, Who, X, Y, OldBoard}|M]
                 , turns = T+1
                 , points = Score}}.
 
