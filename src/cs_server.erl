@@ -49,7 +49,7 @@ handle_data(Socket, RawData, State) ->
       send_msg(Socket, Response),
       NewState;
     #state{user = User} ->
-      % forward call
+      % TODO forward call
       State
   end.
 
