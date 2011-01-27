@@ -48,13 +48,15 @@ handle_data(Socket, RawData, State) ->
     Response when Response =:= login_ok orelse
                   Response =:= registration_ok ->
       % login ok, send to fsm
-      gen_tcp:send(Socket, "ok.");
+      send_msg(Socket, "ok.");
     login_failed ->
-      gen_tcp:send(Socket, "{error, login_failed}.");
+      send_msg(Socket, "{error, login_failed}.");
     registration_failed ->
-      gen_tcp:send(Socket, "{error, registration_failed}.");
+      send_msg(Socket, "{error, registration_failed}.");
     unknown_command ->
-      gen_tcp:send(Socket, "{error, unknown_command}.")
+      send_msg(Socket, "{error, unknown_command}.");
+    end_of_line ->
+      ok
   end,
   NewState.
 
@@ -78,11 +80,15 @@ handler(RawData, State) ->
                                false ->
                                  {registration_failed, State}
                              end;
+                           end_of_line ->
+                             {end_of_line, State};
                            _  ->
                              {unknown_command, State}
                          end,
   {Response, NewState}.
 
+parse_data("\n") ->
+  end_of_line;
 parse_data(RawData) ->
   {ok, Tokens, _} = erl_scan:string(RawData),
   {ok, Term} = erl_parse:parse_term(Tokens),
@@ -93,3 +99,6 @@ login(_Username, _Passwd) ->
 
 register_user(_Username, _Passwd) ->
   true.
+
+send_msg(Socket, Msg) ->
+  gen_tcp:send(Socket, Msg ++ "\n").
