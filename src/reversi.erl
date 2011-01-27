@@ -182,7 +182,8 @@ rand_loop(#game{togo=Who} = G) ->
     case move_check(G) of
         {done, G, {Win, B, W}} ->
             io:format("~n~s wins! Black: ~p, White: ~p~n",
-                      [pname(Win), B, W]);
+                      [pname(Win), B, W]),
+            G;
         {go, _, M} ->
             {X,Y,GN} = rand_pick(M),
             show_move(G, X, Y, Who),
