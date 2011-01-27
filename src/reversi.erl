@@ -10,6 +10,7 @@
          , winner/1
          , pname/1
          , rand_play/1
+         , game2lists/1
          ]).
 
 -include("../include/reversi.hrl").
@@ -150,6 +151,10 @@ check_avail(#game{} = G, Who) ->
                        {ok, GN} -> true;
                        GN -> false
                    end].
+
+game2lists(#game{board=Board}) ->
+    [ [piece(Board,X,Y) || X <- [0,1,2,3,4,5,6,7]]
+      || Y <- [0,1,2,3,4,5,6,7]].
 
 move_check(#game{togo = Who} = G) ->
     O = other_guy(Who),
