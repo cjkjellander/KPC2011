@@ -43,62 +43,61 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 handle_data(Socket, RawData, State) ->
-  {Response, NewState} = handler(RawData, State),
-  case Response of
-    Response when Response =:= login_ok orelse
-                  Response =:= registration_ok ->
-      % login ok, send to fsm
-      send_msg(Socket, "ok.");
-    login_failed ->
-      send_msg(Socket, "{error, login_failed}.");
-    registration_failed ->
-      send_msg(Socket, "{error, registration_failed}.");
-    unknown_command ->
-      send_msg(Socket, "{error, unknown_command}.");
-    end_of_line ->
-      ok
-  end,
-  NewState.
+  case State of
+    #state{user = undefined} ->
+      {Response, NewState} = handler(RawData, State),
+      send_msg(Socket, Response),
+      NewState;
+    #state{user = User} ->
+      % forward call
+      State
+  end.
 
 handler(RawData, State) ->
   Msg = parse_data(RawData),
   {Response, NewState} = case Msg of
                            {login,
                             [{username, Username},{password, Passwd}]} ->
-                             % validate user, update state
                              case login(Username, Passwd) of
                                true  ->
-                                 {login_ok, State#state{user = Username}};
+                                 {ok, State#state{user = Username}};
                                false ->
-                                 {login_failed, State}
+                                 {{error, login_failed}, State}
                              end;
                            {register,
                             [{username, Username},{password, Passwd}]} ->
                              case register_user(Username, Passwd) of
                                true  ->
-                                 {registration_ok, State#state{user = Username}};
+                                 {ok, State#state{user = Username}};
                                false ->
-                                 {registration_failed, State}
+                                 {{error, registration_failed}, State}
                              end;
+                           logout ->
+                             {ok, State#state{user = undefined}};
                            end_of_line ->
                              {end_of_line, State};
                            _  ->
-                             {unknown_command, State}
+                             {{error, unknown_command}, State}
                          end,
-  {Response, NewState}.
+  {lists:flatten(io_lib:format("~p", [Response])), NewState}.
 
 parse_data("\n") ->
   end_of_line;
 parse_data(RawData) ->
+  %% FIXME add error handling
   {ok, Tokens, _} = erl_scan:string(RawData),
   {ok, Term} = erl_parse:parse_term(Tokens),
   Term.
 
-login(_Username, _Passwd) ->
-  true.
+login(Username, Password) ->
+  case cs_db:get_password(Username) of
+    {ok, StoredPassword} ->
+      StoredPassword =:= Password;
+    _ -> false
+  end.
 
-register_user(_Username, _Passwd) ->
-  true.
+register_user(Username, Password) ->
+  cs_db:add_user(Username, Password).
 
 send_msg(Socket, Msg) ->
   gen_tcp:send(Socket, Msg ++ "\n").
