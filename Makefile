@@ -1,6 +1,19 @@
+ERL ?= erl
+APP := reversi
 
-all: 
-	erl -make
+.PHONY: deps
+
+all: deps
+	@./rebar compile
+
+deps:
+	@./rebar get-deps
 
 clean:
-	rm -rf ./ebin/*.beam
+	@./rebar clean
+
+distclean: clean
+	@./rebar delete-deps
+
+docs:
+	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
