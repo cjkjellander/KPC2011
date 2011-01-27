@@ -5,7 +5,7 @@
 %%%
 %%% Created : 27 Jan 2011 by Thomas Järvstrand <>
 %%%-------------------------------------------------------------------
--module(reversi_game_db).
+-module(rev_game_db).
 
 -behaviour(gen_server).
 
