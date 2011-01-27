@@ -12,21 +12,14 @@
          , rand_play/1
          ]).
 
+-include("../include/reversi.hrl").
+
 -define(B, 0).
 -define(W, 1).
 -define(E, -1).
 
--record(game, {number
-               , board = {16#0000000810000000,
-                          16#0000001008000000}
-               , togo = 0
-               , turns = 0
-               , moves = []
-               , points = {2, 2}
-               }).
-
 new_game(N) ->
-    {ok, #game{number=N}}.
+    {ok, #game{id=N}}.
 
 draw_board(#game{} = G) ->
     io:format(" +--------+~n"),
