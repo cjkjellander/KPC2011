@@ -15,3 +15,7 @@
                }).
 
 -endif.
+
+-define(B, 0).
+-define(W, 1).
+-define(E, -1).

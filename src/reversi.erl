@@ -14,10 +14,6 @@
 
 -include("../include/reversi.hrl").
 
--define(B, 0).
--define(W, 1).
--define(E, -1).
-
 new_game(N) ->
     {ok, #game{id=N}}.
 
