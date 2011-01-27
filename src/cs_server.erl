@@ -11,7 +11,7 @@
         , code_change/3
         ]).
 
--record(state, {lsock, user}).
+-record(state, {lsock, user, lobby, game_server}).
 
 start_link(LSock) ->
   gen_server:start_link(?MODULE, [LSock], []).
