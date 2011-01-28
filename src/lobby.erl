@@ -78,7 +78,7 @@ handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games =
     end;
 
 handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
-    io:format("~p,~p~n", [User, Passwd]),
+    check_inputs,
     case rev_bot:login(User, Passwd, IP) of
         {ok, _} ->
             {reply, welcome, LS#lobby_state{players = [From | Ps]}};
