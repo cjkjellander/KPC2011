@@ -41,7 +41,7 @@ start_client_handler(Module, Args) ->
 
 client_handler_child_spec(Module, Args) ->
     {
-      client_handler,
+      {client_handler, make_ref()},
       {Module, start_link, Args},
       temporary,
       5000,
