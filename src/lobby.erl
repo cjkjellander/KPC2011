@@ -32,6 +32,16 @@
           pid
         }).
 
+%% An ongoing game.
+-record(duel,
+        {
+          game_id,
+          game_server,
+          game_data,
+          black,
+          white
+        }).
+
 
 %%% API
 
@@ -72,9 +82,11 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 
 handle_client_command({game, GameID, Command}, From, #lobby_state{games = Gs} = LS) ->
-    case lists:keyfind(GameID, 1, Gs) of
-        {GameID, Server} -> handle_client_game_command(Server, From, Command, LS);
-        false            -> {reply, {error, unknown_game}, LS}
+    case lists:keyfind(GameID, #duel.game_id, Gs) of
+        G = #duel{} ->
+            handle_client_game_command(G, From, Command, LS);
+        false ->
+            {reply, {error, unknown_game}, LS}
     end;
 
 handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
@@ -92,20 +104,28 @@ handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps}
 handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
     NewLS =
         case RPs of
-            [OtherPlayer] ->
-                {ok, #game{id = GameID}} = rev_game_db:new_game(),
+            [OtherPlayer | Ps] ->
+                {ok, Game} = rev_game_db:new_game(),
+                GameID = #game.id,
                 {ok, GameServer} = game_server_sup:start_game_server(GameID, self()),
-                LS#lobby_state{ready = [], games = [{GameID, GameServer} | Gs]};
+                G = #duel{game_id = GameID,
+                          game_server = GameServer,
+                          game_data = Game,
+                          black = OtherPlayer,
+                          white = From},
+                %% FIXME: Inform players!
+                LS#lobby_state{ready = Ps, games = [G | Gs]};
             [] ->
                 LS#lobby_state{ready = [From]}
         end,
     {reply, get_ready_for_some_action, NewLS};
 
 handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || {Id, GameServer} <- Games]}, LS};
+    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
 
 handle_client_command(_Command, From, LS) ->
     {reply, {error, unknown_command}, LS}.
 
-handle_client_game_command(_GameServer, From, _Command, LS) ->
+
+handle_client_game_command(#duel{}, _From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.
