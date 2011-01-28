@@ -84,7 +84,7 @@ which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
             gen_server:cast(L, {game_over, G, Winner}),
             gen_server:cast(that_guy(GS, Who),
                             {game_over, G, Winner}),
-            {stop, {game_over, G, Winner}, GS#game_state{game=G}}
+            {stop, normal, {game_over, G, Winner}, GS#game_state{game=G}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
