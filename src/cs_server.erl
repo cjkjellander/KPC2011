@@ -49,14 +49,16 @@ handle_data(Socket, RawData, State) ->
       % do nothing
       State;
     {error, could_not_parse_command} ->
-      send_msg(Socket, ""),
+      send_msg(Socket, term_to_string(Request)),
       State;
     _ ->
       Response = lobby:client_command(Request),
       send_msg(Socket, term_to_string(Response)),
 
       if Response =:= good_bye ->
-          gen_tcp:close(Socket)
+          gen_tcp:close(Socket);
+         true ->
+          ok
       end,
 
       State
