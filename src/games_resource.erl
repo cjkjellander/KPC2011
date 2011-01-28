@@ -15,4 +15,17 @@ to_html(ReqData, State) ->
     {io_lib:format("~p", [Games]), ReqData, State}.
 
 to_json(ReqData, State) ->
-    {"json list of games resources ...", ReqData, State}.
+    %% missing hostname!
+    Path = wrq:path(ReqData),
+    GamesJson =
+        [ {"game", {struct, [{"rel", "self"},
+                             {"href", io_lib:format("~s/~s", [Path, Id]) }]}}
+          || Id <- lobby:client_command({list_games})],
+    Json =
+        {struct,
+         [{"games",
+           [{"link", {struct, [{"rel", "self"},
+                               {"href", Path}]}}
+            |GamesJson]
+          }]},
+    {mochijson2:encode(Json), ReqData, State}.
