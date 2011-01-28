@@ -45,7 +45,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 handle_data(Socket, RawData, State) ->
-    Request = parse_data(RawData),
+    Request = tcp_parse:parse_data(RawData),
     case Request of
         [] ->
                                                 % do nothing
@@ -64,18 +64,6 @@ handle_data(Socket, RawData, State) ->
             end,
 
             State
-    end.
-
-parse_data("\n") ->
-    [];
-parse_data(RawData) ->
-    try
-        {ok, Tokens, _} = erl_scan:string(RawData),
-        {ok, Term} = erl_parse:parse_term(Tokens),
-        Term
-    catch
-        _:_ ->
-            {error, could_not_parse_command}
     end.
 
 term_to_string(Term) ->
