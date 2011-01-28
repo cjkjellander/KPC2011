@@ -52,6 +52,12 @@ start_link() ->
 client_command(Command) ->
     gen_server:call(reversi_lobby, {cmd, Command}).
 
+game_over(Winner) ->
+    gen_server:cast(reversi_lobby, {game_over, self(), Winner}).
+
+game_crash(Reason, GameState) ->
+    gen_server:cast(reversi_lobby, {game_server_crash, Reason, GameState}).
+
 %% enter(Name) ->
 %%     gen_server:call(reversi_lobby, {enter, Name}).
 
@@ -107,7 +113,7 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
             [OtherPlayer | Ps] ->
                 {ok, Game} = rev_game_db:new_game(),
                 GameID = #game.id,
-                {ok, GameServer} = game_server_sup:start_game_server(GameID, self()),
+                {ok, GameServer} = game_server_sup:start_game_server(GameID),
                 G = #duel{game_id = GameID,
                           game_server = GameServer,
                           game_data = Game,
