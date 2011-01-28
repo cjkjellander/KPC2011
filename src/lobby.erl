@@ -113,14 +113,17 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
     NewLS =
         case RPs of
             [OtherPlayer | Ps] ->
+                %% Opponent found, set up a new game!
+                Black = OtherPlayer,
+                White = From,
                 {ok, Game} = rev_game_db:new_game(),
                 GameID = #game.id,
-                {ok, GameServer} = game_server_sup:start_game_server(GameID),
+                {ok, GameServer} = game_server_sup:start_game_server(GameID, Black, White),
                 G = #duel{game_id = GameID,
                           game_server = GameServer,
                           game_data = Game,
-                          black = OtherPlayer,
-                          white = From},
+                          black = Black,
+                          white = White},
                 %% FIXME: Inform players!
                 LS#lobby_state{ready = Ps, games = [G | Gs]};
             [] ->

@@ -7,7 +7,7 @@
 %% API
 -export([
          start_link/0,
-         start_game_server/1
+         start_game_server/3
         ]).
 
 
@@ -32,6 +32,6 @@ init(_Args) ->
 start_link() ->
     supervisor:start_link({local, reversi_game_server_supervisor}, ?MODULE, []).
 
-start_game_server(GameNumber) ->
+start_game_server(GameNumber, Black, White) ->
     supervisor:start_child(reversi_game_server_supervisor,
-                           [GameNumber]).
+                           [GameNumber, Black, White]).
