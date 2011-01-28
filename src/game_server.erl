@@ -7,7 +7,7 @@
 
 %% External Interface
 -export([login/2
-         , move/3
+         , move/4
          , status/1
          , opponent/1
         ]).
