@@ -77,9 +77,14 @@ handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games =
         false            -> {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({{login, User, Passwd}, _IP}, From, #lobby_state{players = Ps} = LS) ->
-    do_login_stuff,
-    {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+    io:format("~p,~p~n", [User, Passwd]),
+    case rev_bot:login(User, Passwd, IP) of
+        {ok, _} ->
+            {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+        Error   ->
+            {reply, Error, LS}
+    end;
 
 handle_client_command({{logout}, _IP}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
     {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
