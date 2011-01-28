@@ -86,13 +86,19 @@ handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = 
             {reply, Error, LS}
     end;
 
-handle_client_command({{logout}, _IP}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
+handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
     {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
                                      ready = lists:delete(From, RPs)}};
 
-handle_client_command({{register, User, Passwd}, _IP}, From, #lobby_state{players = Ps} = LS) ->
-    do_register_stuff,
-    {reply, {ok, welcome}, LS#lobby_state{players = [From | Ps]}};
+handle_client_command({{register, User, Player, Desc, Email}, IP},
+                      From, #lobby_state{players = Ps} = LS) ->
+    check_inputs,
+    case rev_bot:register(User, Player, Desc, Email, IP, []) of
+        {ok, PW} ->
+            {reply, {ok, password, PW}, LS#lobby_state{players = [From | Ps]}};
+        Error    ->
+            {reply, Error, LS}
+    end;
 
 handle_client_command({{i_want_to_play}, _IP}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
     NewLS =
