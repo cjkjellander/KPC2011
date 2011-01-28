@@ -25,7 +25,7 @@
 
 -record(state, {next_id}).
 
--define(SERVER, ?MODULE).
+-define(SERVER, reversi_game_db).
 -define(TABLE, game).
 -define(TABLE_ATTR, [{attributes, record_info(fields,game)}]).
 
