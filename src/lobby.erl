@@ -71,9 +71,14 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
-handle_client_command({game, GameID, Command}, From, LS) ->
-    %% Locate the game server with GameID.
-    handle_client_game_command(GameID, From, Command, LS);
+handle_client_command({game, GameID, Command}, From,
+                      #lobby_state{games=Games}=LS) ->
+    case lists:keyfind(GameID, #game.id, Games) of
+        #game{} = Game ->
+            handle_client_game_command(Game, From, Command, LS);
+        false ->
+            {reply, {error, no_such_game}, LS}
+    end;
 
 handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
     do_login_stuff,
@@ -99,9 +104,11 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
         end,
     {reply, get_ready_for_some_action, NewLS};
 
+handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
+    {reply, {ok, [Id || #game{id=Id} <- Games]}, LS};
+
 handle_client_command(_Command, From, LS) ->
     {reply, {error, unknown_command}, LS}.
-
 
 handle_client_game_command(_GameServer, From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.
