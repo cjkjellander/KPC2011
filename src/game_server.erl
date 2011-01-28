@@ -7,7 +7,7 @@
 
 %% External Interface
 -export([login/2
-         , move/3
+         , move/4
          , status/1
          , opponent/1
         ]).
@@ -36,36 +36,36 @@ start_link({N, Lobby}) ->
     gen_fsm:start_link(?MODULE, {N, Lobby}, []).
 
 init({N, Lobby}) ->
-    G = reversi:new_game(N),
+    {ok, G} = reversi:new_game(N),
     GS = #game_state{game=G, lobby=Lobby},
     {ok, setup, GS}.
 
-setup({login, ?B}, Pid, GS) ->
+setup({login, ?B}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, black_ready, GS#game_state{black=Pid}};
-setup({login, ?W}, Pid, GS) ->
+setup({login, ?W}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, white_ready, GS#game_state{white=Pid}};
 setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
-black_ready({login, ?W}, Pid, GS) ->
+black_ready({login, ?W}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
-white_ready({login, ?B}, Pid, GS) ->
+white_ready({login, ?B}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
-play({move, X, Y}, Pid, #game_state{game=#game{togo=Who}, black=B, white=W} = GS)
-  when Pid =:= B andalso Who =:= ?B orelse
-       Pid =:= W andalso Who =:= ?W ->
+play({move, Who, X, Y}, {Pid,_}, #game_state{game=#game{togo=Who}} = GS) ->
     case reversi:move(GS#game_state.game, X, Y, Who) of
         {ok, NewG} ->
             which_state(Who, NewG, Pid, GS);
         Error ->
             {reply, Error, play, GS}
     end;
+play({move, _, _, _}, _, GS) ->
+    {reply, {error, notyourturn}, play, GS};
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
 
@@ -78,7 +78,8 @@ which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play, GS#game_state{game=Game}};
+            {reply, {your_move, NewGame#game.board}, play,
+             GS#game_state{game=Game}};
         {done, G, Winner} ->
             gen_server:cast(L, {game_over, G, Winner}),
             gen_server:cast(that_guy(GS, Who),
@@ -126,8 +127,8 @@ terminate(Reason, _, #game_state{lobby=L} = GS) ->
 login(GameServer, Color) ->
     gen_fsm:sync_send_event(GameServer, {login, Color}).
 
-move(GameServer, X, Y) ->
-    gen_fsm:sync_send_event(GameServer, {move, X, Y}).
+move(GameServer, Who, X, Y) ->
+    gen_fsm:sync_send_event(GameServer, {move, Who, X, Y}).
 
 status(GameServer) ->
     gen_fsm:sync_send_all_state_event(GameServer, game_status).
