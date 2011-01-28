@@ -36,7 +36,7 @@ start_link({N, Lobby}) ->
     gen_fsm:start_link(?MODULE, {N, Lobby}, []).
 
 init({N, Lobby}) ->
-    G = reversi:new_game(N),
+    {ok, G} = reversi:new_game(N),
     GS = #game_state{game=G, lobby=Lobby},
     {ok, setup, GS}.
 
