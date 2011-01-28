@@ -15,11 +15,10 @@ content_types_provided(ReqData, State) ->
     {Types, ReqData, State}.
 
 resource_exists(ReqData, State) ->
-    try list_to_integer(wrq:path_info(foo, ReqData)) of
-        GameId ->
-            %% Status = game_server:status(lobby_server:get_game(GameId)),
-            %% {true, ReqData, [{game_status, Status}|State]}
-            {true, ReqData, [{game_status, GameId}|State]}
+    try
+        GameId = list_to_integer(wrq:path_info(foo, ReqData)),
+        {ok, Status} = lobby:client_command({game, GameId, status}),
+        {true, ReqData, [{game_status, Status}|State]}
     catch
         _:_ -> {false, ReqData, State}
     end.
