@@ -1,4 +1,4 @@
--module(lobby_sup).
+-module(servers_sup).
 -behaviour(supervisor).
 
 %% Supervisor callbacks
@@ -23,7 +23,7 @@ init(_Args) ->
 %%% API
 
 start_link() ->
-    supervisor:start_link({local, reversi_lobby_supervisor}, ?MODULE, []).
+    supervisor:start_link({local, reversi_servers_supervisor}, ?MODULE, []).
 
 
 %%% Internal functions
