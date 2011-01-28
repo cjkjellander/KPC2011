@@ -18,9 +18,11 @@
 
 -record(rev_bot, {  name = []
                   , player = []
+                  , password = []
                   , descr = []
                   , email = []
                   , rank = 1000
+                  , last_ip = []
                   , extra = []
              }).
 
