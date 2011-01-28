@@ -12,11 +12,14 @@
                , points = {2, 2}
                , start_time
                , end_time
+               , time_left = {{0, 300, 0},
+                              {0, 300, 0}}
                }).
 
 -record(rev_bot, {  name = []
                   , player = []
                   , descr = []
+                  , email = []
                   , rank = 1000
                   , extra = []
              }).
