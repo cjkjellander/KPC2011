@@ -11,7 +11,7 @@
         , code_change/3
         ]).
 
--record(state, {lsock, user, lobby, game_server}).
+-record(state, {lsock}).
 
 start_link(LSock) ->
   gen_server:start_link(?MODULE, [LSock], []).
@@ -43,61 +43,39 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 handle_data(Socket, RawData, State) ->
-  case State of
-    #state{user = undefined} ->
-      {Response, NewState} = handler(RawData, State),
-      send_msg(Socket, Response),
-      NewState;
-    #state{user = User} ->
-      % TODO forward call
+  Request = parse_data(RawData),
+  case Request of
+    [] ->
+      % do nothing
+      State;
+    {error, could_not_parse_command} ->
+      send_msg(Socket, ""),
+      State;
+    _ ->
+      Response = lobby:client_command(Request),
+      send_msg(Socket, term_to_string(Response)),
+
+      if Response =:= good_bye ->
+          gen_tcp:close(Socket)
+      end,
+
       State
   end.
 
-handler(RawData, State) ->
-  Msg = parse_data(RawData),
-  {Response, NewState} = case Msg of
-                           {login,
-                            [{username, Username},{password, Passwd}]} ->
-                             case login(Username, Passwd) of
-                               true  ->
-                                 {ok, State#state{user = Username}};
-                               false ->
-                                 {{error, login_failed}, State}
-                             end;
-                           {register,
-                            [{username, Username},{password, Passwd}]} ->
-                             case register_user(Username, Passwd) of
-                               true  ->
-                                 {ok, State#state{user = Username}};
-                               false ->
-                                 {{error, registration_failed}, State}
-                             end;
-                           logout ->
-                             {ok, State#state{user = undefined}};
-                           end_of_line ->
-                             {end_of_line, State};
-                           _  ->
-                             {{error, unknown_command}, State}
-                         end,
-  {lists:flatten(io_lib:format("~p", [Response])), NewState}.
-
 parse_data("\n") ->
-  end_of_line;
+  [];
 parse_data(RawData) ->
-  %% FIXME add error handling
-  {ok, Tokens, _} = erl_scan:string(RawData),
-  {ok, Term} = erl_parse:parse_term(Tokens),
-  Term.
-
-login(Username, Password) ->
-  case cs_db:get_password(Username) of
-    {ok, StoredPassword} ->
-      StoredPassword =:= Password;
-    _ -> false
+  try
+    {ok, Tokens, _} = erl_scan:string(RawData),
+    {ok, Term} = erl_parse:parse_term(Tokens),
+    Term
+  catch
+    _:_ ->
+      {error, could_not_parse_command}
   end.
 
-register_user(Username, Password) ->
-  cs_db:add_user(Username, Password).
+term_to_string(Term) ->
+  lists:flatten(io_lib:format("~p", [Term])).
 
 send_msg(Socket, Msg) ->
   gen_tcp:send(Socket, Msg ++ "\n").
