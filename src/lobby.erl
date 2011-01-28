@@ -101,28 +101,27 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
     end;
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = RPs, games = Gs} = LS) ->
-    NewLS =
-        case RPs of
-            [OtherPlayer] ->
-                {ok, #game{id = GameID}} = rev_game_db:new_game(),
-                {ok, GameServer} =
-                    game_server_sup:start_game_server(GameID, self()),
-                NewLS = LS#lobby_state{ready = [],
-                                       games = [{GameID, GameServer} | Gs]},
-                gen_server:cast(OtherPlayer,
-                                {redirect, {lets_play, GameServer, GameID}}),
-                {reply, {redirect, {lets_play, GameServer, GameID}}, NewLS};
-            [] ->
-                NewLS = LS#lobby_state{ready = [From]},
-                {reply, {ok, waiting_for_challenge}, NewLS}
-        end;
+    case RPs of
+        [OtherPlayer] ->
+            {ok, #game{id = GameID}} = rev_game_db:new_game(),
+            {ok, GameServer} =
+                game_server_sup:start_game_server(GameID, self()),
+            NewLS = LS#lobby_state{ready = [],
+                                   games = [{GameID, GameServer} | Gs]},
+            gen_server:cast(OtherPlayer,
+                            {redirect, {lets_play, GameServer, GameID}}),
+            {reply, {redirect, {lets_play, GameServer, GameID}}, NewLS};
+        [] ->
+            NewLS = LS#lobby_state{ready = [From]},
+            {reply, {ok, waiting_for_challenge}, NewLS}
+    end;
 
 
 handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || {Id, GameServer} <- Games]}, LS};
+    {reply, {ok, [Id || {Id, _GameServer} <- Games]}, LS};
 
-handle_client_command(_Command, From, LS) ->
+handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
 
-handle_client_game_command(_GameServer, From, _Command, LS) ->
+handle_client_game_command(_GameServer, _From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.
