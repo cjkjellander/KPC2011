@@ -97,8 +97,10 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready_for_play = RPs}
             [] ->
                 [From]
         end,
-    {reply, get_ready_for_some_action, LS#lobby_state{ready_for_play = Ready}}.
+    {reply, get_ready_for_some_action, LS#lobby_state{ready_for_play = Ready}};
 
+handle_client_command(_Command, From, LS) ->
+    {reply, {error, unknown_command}, LS}.
 
 
 handle_client_game_command(_GameServer, From, _Command, LS) ->
