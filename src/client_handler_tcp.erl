@@ -16,6 +16,7 @@
 -record(state, {lsock
                 , ip
                 , game_server
+                , socket
                }).
 
 start_link(LSock) ->
@@ -40,7 +41,7 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     {ok, {IP, _Port}} = inet:sockname(Socket),
     %% FIXME: Do stuff with the IP-address.
     client_handler_sup:start_client_handler(?MODULE, [LSock]),
-    {noreply, State#state{ip = IP}}.
+    {noreply, State#state{ip = IP, socket=Socket}}.
 
 terminate(_Reason, _State) ->
     ok.
