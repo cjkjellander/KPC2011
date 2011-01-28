@@ -106,5 +106,5 @@ gen_hash(Salt, Password) ->
     {Salt, Hash}.
 
 check_passwd({Salt, Hash}, Password) ->
-    Hash2 = gen_hash(Salt, Password),
+    {_, Hash2} = gen_hash(Salt, Password),
     Hash =:= Hash2.

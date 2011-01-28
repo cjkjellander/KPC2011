@@ -89,7 +89,7 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
-handle_client_command({game, GameID, Command}, From, #lobby_state{games = Gs} = LS) ->
+handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games = Gs} = LS) ->
     case lists:keyfind(GameID, #duel.game_id, Gs) of
         G = #duel{} ->
             handle_client_game_command(G, From, Command, LS);
@@ -97,19 +97,30 @@ handle_client_command({game, GameID, Command}, From, #lobby_state{games = Gs} = 
             {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
-    do_login_stuff,
-    {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+    check_inputs,
+    case rev_bot:login(User, Passwd, IP) of
+        {ok, _} ->
+            {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+        Error   ->
+            {reply, Error, LS}
+    end;
 
-handle_client_command({logout}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
+handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
     {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
                                      ready = lists:delete(From, RPs)}};
 
-handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
-    do_register_stuff,
-    {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+handle_client_command({{register, User, Player, Desc, Email}, IP},
+                      From, #lobby_state{players = Ps} = LS) ->
+    check_inputs,
+    case rev_bot:register(User, Player, Desc, Email, IP, []) of
+        {ok, PW} ->
+            {reply, {ok, password, PW}, LS#lobby_state{players = [From | Ps]}};
+        Error    ->
+            {reply, Error, LS}
+    end;
 
-handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
+handle_client_command({{i_want_to_play}, _IP}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
     NewLS =
         case RPs of
             [OtherPlayer | Ps] ->
@@ -131,7 +142,7 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
         end,
     {reply, get_ready_for_some_action, NewLS};
 
-handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
+handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
     {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
 
 handle_client_command(_Command, From, LS) ->
