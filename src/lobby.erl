@@ -146,9 +146,9 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
 handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
     {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
 
-
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
+
 
 handle_client_game_command(#duel{}, _From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.

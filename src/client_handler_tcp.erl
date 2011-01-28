@@ -16,6 +16,7 @@
 -record(state, {lsock
                 , ip
                 , game_server
+                , socket
                }).
 
 start_link(LSock) ->
@@ -28,7 +29,10 @@ handle_call(Msg, _From, State) ->
     {reply, {ok, Msg}, State}.
 
 handle_cast(stop, State) ->
-    {stop, normal, State}.
+    {stop, normal, State};
+handle_cast(Response, #state{socket=Socket} = State) ->
+    NewState = handle_response(Response, Socket, State),
+    {noreply, NewState}.
 
 handle_info({tcp, Socket, RawData}, State) ->
     NewState = handle_data(Socket, RawData, State),
@@ -40,7 +44,7 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     {ok, {IP, _Port}} = inet:sockname(Socket),
     %% FIXME: Do stuff with the IP-address.
     client_handler_sup:start_client_handler(?MODULE, [LSock]),
-    {noreply, State#state{ip = IP}}.
+    {noreply, State#state{ip = IP, socket=Socket}}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -53,13 +57,27 @@ handle_data(Socket, RawData, #state{ip = IP, game_server=undefined} = State) ->
     Request = parse_data(RawData),
     case Request of
         [] ->
-                                                % do nothing
+            %% do nothing
             State;
         {error, could_not_parse_command} ->
             send_msg(Socket, term_to_string(Request)),
             State;
         _ ->
             Response = lobby:client_command({Request, IP}),
+            handle_response(Response, Socket, State)
+    end;
+
+handle_data(Socket, RawData, #state{ip = _IP, game_server=GS} = State) ->
+    Request = parse_data(RawData),
+    case Request of
+        [] ->
+            %% do nothing
+            State;
+        {error, could_not_parse_command} ->
+            send_msg(Socket, term_to_string(Request)),
+            State;
+        _ ->
+            Response = gen_fsm:sync_send_event(GS, Request),
             handle_response(Response, Socket, State)
     end.
 
