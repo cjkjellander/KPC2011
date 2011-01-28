@@ -82,8 +82,8 @@ handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = 
     {reply, welcome, LS#lobby_state{players = [From | Ps]}};
 
 handle_client_command({logout}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:remove(From, Ps),
-                                     ready = lists:remove(From, RPs)}};
+    {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
+                                     ready = lists:delete(From, RPs)}};
 
 handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
     do_register_stuff,
@@ -102,7 +102,7 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
     {reply, get_ready_for_some_action, NewLS};
 
 handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || [Id, #game{}] <- Games]}, LS};
+    {reply, {ok, [Id || {Id, GameServer} <- Games]}, LS};
 
 handle_client_command(_Command, From, LS) ->
     {reply, {error, unknown_command}, LS}.
