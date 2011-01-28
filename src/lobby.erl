@@ -101,9 +101,11 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
         end,
     {reply, get_ready_for_some_action, NewLS};
 
+handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
+    {reply, {ok, [Id || #game{id=Id} <- Games]}, LS};
+
 handle_client_command(_Command, From, LS) ->
     {reply, {error, unknown_command}, LS}.
-
 
 handle_client_game_command(_GameServer, From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.
