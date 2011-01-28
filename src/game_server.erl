@@ -78,7 +78,8 @@ which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play, GS#game_state{game=Game}};
+            {reply, {your_move, NewGame#game.board}, play,
+             GS#game_state{game=Game}};
         {done, G, Winner} ->
             gen_server:cast(L, {game_over, G, Winner}),
             gen_server:cast(that_guy(GS, Who),
