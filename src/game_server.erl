@@ -40,24 +40,24 @@ init({N, Lobby}) ->
     GS = #game_state{game=G, lobby=Lobby},
     {ok, setup, GS}.
 
-setup({login, ?B}, Pid, GS) ->
+setup({login, ?B}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, black_ready, GS#game_state{black=Pid}};
-setup({login, ?W}, Pid, GS) ->
+setup({login, ?W}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, white_ready, GS#game_state{white=Pid}};
 setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
-black_ready({login, ?W}, Pid, GS) ->
+black_ready({login, ?W}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
-white_ready({login, ?B}, Pid, GS) ->
+white_ready({login, ?B}, {Pid,_}, GS) ->
     {reply, {ok, logged_in}, play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
-play({move, Who, X, Y}, Pid, #game_state{game=#game{togo=Who}} = GS) ->
+play({move, Who, X, Y}, {Pid,_}, #game_state{game=#game{togo=Who}} = GS) ->
     case reversi:move(GS#game_state.game, X, Y, Who) of
         {ok, NewG} ->
             which_state(Who, NewG, Pid, GS);
