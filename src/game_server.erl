@@ -10,6 +10,7 @@
          , move/4
          , status/1
          , opponent/1
+         , client_request/2
         ]).
 
 % Internal Interface
