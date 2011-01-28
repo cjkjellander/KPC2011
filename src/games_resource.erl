@@ -11,7 +11,8 @@ content_types_provided(ReqData, State) ->
     {Types, ReqData, State}.
 
 to_html(ReqData, State) ->
-    {"html list of games resources ...", ReqData, State}.
+    Games = lobby:client_command({list_games}),
+    {io_lib:format("~p", [Games]), ReqData, State}.
 
 to_json(ReqData, State) ->
     {"json list of games resources ...", ReqData, State}.

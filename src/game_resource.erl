@@ -25,7 +25,8 @@ resource_exists(ReqData, State) ->
 
 to_html(ReqData, State) ->
     Status = proplists:get_value(game_status, State),
-    {io_lib:format("~p", [Status]), ReqData, State}.
+    Board = reversi:game2lists(Status),
+    {io_lib:format("~p", [Board]), ReqData, State}.
 
 to_json(ReqData, State) ->
     {"watching game ~s ...", ReqData, State}.
