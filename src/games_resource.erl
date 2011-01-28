@@ -14,17 +14,21 @@ to_json(ReqData, State) ->
     %% missing hostname!
     Path = wrq:path(ReqData),
     Games = lobby:client_command({list_games}),
-    GamesJson =
-        [ {"game", {struct, [{"rel", <<"self">>},
-                             {"href", list_to_binary(
-                                        io_lib:format("~s/~w", [Path, Id])) }]}}
-          || Id <- Games],
     Json =
         {struct,
          [{"games",
            {struct,
-            [{"link", {struct, [{"rel", <<"self">>},
-                                {"href", list_to_binary(Path)}]}}
-            |GamesJson]}
+            [{"link", {struct,
+                       [{"rel", <<"self">>},
+                        {"href", list_to_binary(Path)}
+                       ]}}
+            ] ++
+            [{"game", {struct,
+                       [{"rel", <<"self">>},
+                        {"href", list_to_binary(
+                                   io_lib:format("~s/~w", [Path, Id])) }
+                       ]}}
+             || Id <- Games
+            ]}
           }]},
     {mochijson2:encode(Json), ReqData, State}.
