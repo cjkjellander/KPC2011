@@ -65,6 +65,19 @@ handle_data(Socket, RawData, #state{ip = IP, game_server=undefined} = State) ->
         _ ->
             Response = lobby:client_command({Request, IP}),
             handle_response(Response, Socket, State)
+    end;
+handle_data(Socket, RawData, #state{ip = _IP, game_server=GS} = State) ->
+    Request = parse_data(RawData),
+    case Request of
+        [] ->
+                                                % do nothing
+            State;
+        {error, could_not_parse_command} ->
+            send_msg(Socket, term_to_string(Request)),
+            State;
+        _ ->
+            Response = gen_fsm:sync_send_event(GS, Request),
+            handle_response(Response, Socket, State)
     end.
 
 handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
