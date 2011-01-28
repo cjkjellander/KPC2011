@@ -110,7 +110,7 @@ handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
 handle_sync_event(game_status, _From, StateName, GS) ->
-    {reply, GS#game_state.game, StateName, GS};
+    {reply, {ok, GS#game_state.game}, StateName, GS};
 handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
     {reply, Opponent, StateName, GS};
 handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->

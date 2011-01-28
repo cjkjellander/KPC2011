@@ -71,13 +71,10 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
-handle_client_command({game, GameID, Command}, From,
-                      #lobby_state{games=Games}=LS) ->
-    case lists:keyfind(GameID, #game.id, Games) of
-        #game{} = Game ->
-            handle_client_game_command(Game, From, Command, LS);
-        false ->
-            {reply, {error, no_such_game}, LS}
+handle_client_command({game, GameID, Command}, From, #lobby_state{games = Gs} = LS) ->
+    case lists:keyfind(GameID, 1, Gs) of
+        {GameID, Server} -> handle_client_game_command(Server, From, Command, LS);
+        false            -> {reply, {error, unknown_game}, LS}
     end;
 
 handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
@@ -96,9 +93,9 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
     NewLS =
         case RPs of
             [OtherPlayer] ->
-                G = #game{id = GameID} = rev_game_db:new_game(),
-                game_server_sup:start_game_server(GameID, self()),
-                LS#lobby_state{ready = [], games = [G | Gs]};
+                #game{id = GameID} = rev_game_db:new_game(),
+                {ok, GameServer} = game_server_sup:start_game_server(GameID, self()),
+                LS#lobby_state{ready = [], games = [{GameID, GameServer} | Gs]};
             [] ->
                 LS#lobby_state{ready = [From]}
         end,
