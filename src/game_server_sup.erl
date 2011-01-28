@@ -7,7 +7,7 @@
 %% API
 -export([
          start_link/0,
-         start_game_server/2
+         start_game_server/1
         ]).
 
 
