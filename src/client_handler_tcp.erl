@@ -15,6 +15,7 @@
 
 -record(state, {lsock
                 , ip
+                , game_server
                }).
 
 start_link(LSock) ->
@@ -48,7 +49,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Internal functions
-handle_data(Socket, RawData, #state{ip = IP} = State) ->
+handle_data(Socket, RawData, #state{ip = IP, game_server=undefined} = State) ->
     Request = parse_data(RawData),
     case Request of
         [] ->
@@ -59,16 +60,25 @@ handle_data(Socket, RawData, #state{ip = IP} = State) ->
             State;
         _ ->
             Response = lobby:client_command({Request, IP}),
-            send_msg(Socket, term_to_string(Response)),
-
-            if Response =:= good_bye ->
-                    gen_tcp:close(Socket);
-               true ->
-                    ok
-            end,
-
-            State
+            handle_response(Response, Socket, State)
     end.
+
+handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
+    send_msg(Socket, term_to_string({ok, {lets_play, GS, Gid}})),
+    State#state{game_server=GS};
+
+handle_response(Response, Socket, State) ->
+    send_msg(Socket, term_to_string(Response)),
+
+    if Response =:= good_bye ->
+            gen_tcp:close(Socket);
+       true ->
+            ok
+    end,
+
+    State.
+
+
 
 parse_data("\n") ->
     [];
