@@ -93,7 +93,7 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
     NewLS =
         case RPs of
             [OtherPlayer] ->
-                #game{id = GameID} = rev_game_db:new_game(),
+                {ok, #game{id = GameID}} = rev_game_db:new_game(),
                 {ok, GameServer} = game_server_sup:start_game_server(GameID, self()),
                 LS#lobby_state{ready = [], games = [{GameID, GameServer} | Gs]};
             [] ->
