@@ -77,7 +77,7 @@ handle_data(Socket, RawData, #state{ip = _IP, game_server=GS} = State) ->
             send_msg(Socket, term_to_string(Request)),
             State;
         _ ->
-            Response = gen_fsm:sync_send_event(GS, Request),
+            Response = game_server:client_request(GS, Request),
             handle_response(Response, Socket, State)
     end.
 

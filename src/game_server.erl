@@ -135,3 +135,6 @@ status(GameServer) ->
 
 opponent(GameServer) ->
     gen_fsm:sync_send_all_state_event(GameServer, opponent).
+
+client_request(GameServer, Request) ->
+    gen_fsm:sync_send_event(GameServer, Request).
