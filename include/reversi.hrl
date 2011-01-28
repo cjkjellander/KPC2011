@@ -14,8 +14,15 @@
                , end_time
                }).
 
--endif.
+-record(rev_bot, {  name = []
+                  , player = []
+                  , descr = []
+                  , rank = 1000
+                  , extra = []
+             }).
 
 -define(B, 0).
 -define(W, 1).
 -define(E, -1).
+
+-endif.
