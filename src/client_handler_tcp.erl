@@ -13,7 +13,9 @@
 
 -define(DEFAULT_PORT, 7676).
 
--record(state, {lsock}).
+-record(state, {lsock
+                , ip
+               }).
 
 start_link(LSock) ->
     gen_server:start_link(?MODULE, [LSock], []).
@@ -37,7 +39,7 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     {ok, {IP, _Port}} = inet:sockname(Socket),
     %% FIXME: Do stuff with the IP-address.
     client_handler_sup:start_client_handler(?MODULE, [LSock]),
-    {noreply, State}.
+    {noreply, State#state{ip = IP}}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -46,7 +48,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Internal functions
-handle_data(Socket, RawData, State) ->
+handle_data(Socket, RawData, #state{ip = IP} = State) ->
     Request = parse_data(RawData),
     case Request of
         [] ->
@@ -56,7 +58,7 @@ handle_data(Socket, RawData, State) ->
             send_msg(Socket, term_to_string(Request)),
             State;
         _ ->
-            Response = lobby:client_command(Request),
+            Response = lobby:client_command({Request, IP}),
             send_msg(Socket, term_to_string(Response)),
 
             if Response =:= good_bye ->

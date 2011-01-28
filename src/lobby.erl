@@ -71,25 +71,25 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
-handle_client_command({game, GameID, Command}, From, #lobby_state{games = Gs} = LS) ->
+handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games = Gs} = LS) ->
     case lists:keyfind(GameID, 1, Gs) of
         {GameID, Server} -> handle_client_game_command(Server, From, Command, LS);
         false            -> {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{login, User, Passwd}, _IP}, From, #lobby_state{players = Ps} = LS) ->
     do_login_stuff,
     {reply, welcome, LS#lobby_state{players = [From | Ps]}};
 
-handle_client_command({logout}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
+handle_client_command({{logout}, _IP}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
     {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
                                      ready = lists:delete(From, RPs)}};
 
-handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{register, User, Passwd}, _IP}, From, #lobby_state{players = Ps} = LS) ->
     do_register_stuff,
-    {reply, welcome, LS#lobby_state{players = [From | Ps]}};
+    {reply, {ok, welcome}, LS#lobby_state{players = [From | Ps]}};
 
-handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
+handle_client_command({{i_want_to_play}, _IP}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
     NewLS =
         case RPs of
             [OtherPlayer] ->
@@ -101,7 +101,7 @@ handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = 
         end,
     {reply, get_ready_for_some_action, NewLS};
 
-handle_client_command({list_games}, _From, #lobby_state{games = Games} = LS) ->
+handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
     {reply, {ok, [Id || {Id, GameServer} <- Games]}, LS};
 
 handle_client_command(_Command, From, LS) ->
