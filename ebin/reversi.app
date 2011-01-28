@@ -4,6 +4,7 @@
   {modules,
    [
     client_handler_sup,
+    client_handler_tcp,
     game_server,
     game_server_sup,
     gen_client_handler,
