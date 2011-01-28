@@ -82,7 +82,7 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call(new_game, _From, #state{next_id = NextId} = State) ->
-    Game = #game{id = NextId},
+    {ok, Game} = reversi:new_game(NextId),
     write(Game),
     {reply, {ok, Game}, State#state{next_id = NextId + 1}};
 handle_call({update_game, Game}, _From, State) ->
