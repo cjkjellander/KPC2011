@@ -82,8 +82,8 @@ handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = 
     {reply, welcome, LS#lobby_state{players = [From | Ps]}};
 
 handle_client_command({logout}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:remove(From, Ps),
-                                     ready = lists:remove(From, RPs)}};
+    {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
+                                     ready = lists:delete(From, RPs)}};
 
 handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
     do_register_stuff,
