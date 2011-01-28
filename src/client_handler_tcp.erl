@@ -33,7 +33,9 @@ handle_info({tcp, Socket, RawData}, State) ->
 handle_info({tcp_closed, _Socket}, State) ->
     {stop, normal, State};
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    {ok, _Sock} = gen_tcp:accept(LSock),
+    {ok, Socket} = gen_tcp:accept(LSock),
+    {ok, {IP, _Port}} = inet:sockname(Socket),
+    %% FIXME: Do stuff with the IP-address.
     client_handler_sup:start_client_handler(?MODULE, [LSock]),
     {noreply, State}.
 
