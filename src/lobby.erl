@@ -22,7 +22,7 @@
 -record(lobby_state,
         {
           players = [],
-          ready_for_play = [],
+          ready = [],
           games = []
         }).
 
@@ -79,25 +79,25 @@ handle_client_command({login, User, Passwd}, From, #lobby_state{players = Ps} = 
     do_login_stuff,
     {reply, welcome, LS#lobby_state{players = [From | Ps]}};
 
-handle_client_command({logout}, From, #lobby_state{players = Ps, ready_for_play = RPs} = LS) ->
+handle_client_command({logout}, From, #lobby_state{players = Ps, ready = RPs} = LS) ->
     {reply, good_bye, LS#lobby_state{players = lists:remove(From, Ps),
-                                     ready_for_play = lists:remove(From, RPs)}};
+                                     ready = lists:remove(From, RPs)}};
 
 handle_client_command({register, User, Passwd}, From, #lobby_state{players = Ps} = LS) ->
     do_register_stuff,
     {reply, welcome, LS#lobby_state{players = [From | Ps]}};
 
-handle_client_command({i_want_to_play}, From, #lobby_state{ready_for_play = RPs} = LS) ->
-    Ready =
+handle_client_command({i_want_to_play}, From, #lobby_state{ready = RPs, games = Gs} = LS) ->
+    NewLS =
         case RPs of
             [OtherPlayer] ->
-                #game{id = GameID} = rev_game_db:new_game(),
+                G = #game{id = GameID} = rev_game_db:new_game(),
                 game_server_sup:start_game_server(GameID, self()),
-                [];
+                LS#lobby_state{ready = [], games = [G | Gs]};
             [] ->
-                [From]
+                LS#lobby_state{ready = [From]}
         end,
-    {reply, get_ready_for_some_action, LS#lobby_state{ready_for_play = Ready}};
+    {reply, get_ready_for_some_action, NewLS};
 
 handle_client_command(_Command, From, LS) ->
     {reply, {error, unknown_command}, LS}.
