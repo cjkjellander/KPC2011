@@ -66,6 +66,8 @@ play({move, X, Y}, Pid, #game_state{game=#game{togo=Who}, black=B, white=W} = GS
         Error ->
             {reply, Error, play, GS}
     end;
+play({move, _, _, _}, _, GS) ->
+    {reply, {error, notyourturn}, play, GS};
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
 
