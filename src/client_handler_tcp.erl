@@ -29,7 +29,10 @@ handle_call(Msg, _From, State) ->
     {reply, {ok, Msg}, State}.
 
 handle_cast(stop, State) ->
-    {stop, normal, State}.
+    {stop, normal, State};
+handle_cast(Response, #state{socket=Socket} = State) ->
+    NewState = handle_response(Response, Socket, State),
+    {noreply, NewState}.
 
 handle_info({tcp, Socket, RawData}, State) ->
     NewState = handle_data(Socket, RawData, State),
