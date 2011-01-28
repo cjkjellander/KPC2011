@@ -16,7 +16,10 @@ init(_Args) ->
     {ok,
      {
        {one_for_one, 5, 2000},
-       [lobby_child_spec()]
+       [
+        lobby_child_spec(),
+        rev_game_db_child_spec()
+       ]
      }}.
 
 
@@ -29,10 +32,21 @@ start_link() ->
 %%% Internal functions
 
 lobby_child_spec() ->
-    {lobby,
-     {lobby, start_link, []},
-     permanent,
-     5000,
-     worker,
-     [lobby]
+    {
+      lobby,
+      {lobby, start_link, []},
+      permanent,
+      5000,
+      worker,
+      [lobby]
+    }.
+
+rev_game_db_child_spec() ->
+    {
+      rev_game_db,
+      {rev_game_db, start_link, []},
+      permanent,
+      5000,
+      worker,
+      [rev_game_db]
     }.
