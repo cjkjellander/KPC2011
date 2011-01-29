@@ -69,7 +69,7 @@ handle_data(Socket, RawData, #state{ip = IP, game_server=GS} = State) ->
                     _         -> game_server:client_command(GS, Request)
                 end,
             handle_response(Response, Socket, State)
-    end;
+    end.
 
 handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
     send_msg(Socket, term_to_string({ok, {lets_play, GS, Gid}})),
