@@ -74,6 +74,9 @@ handle_data(Socket, RawData, #state{ip = IP, game_server=GS} = State) ->
 handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
     send_msg(Socket, term_to_string({ok, {lets_play, GS, Gid}})),
     State#state{game_server=GS};
+handle_response({redirect, {game_over, G, Win}}, Socket, State) ->
+    send_msg(Socket, term_to_string({ok, {game_over, G, Win}})),
+    State#state{game_server=undefined};
 
 handle_response(Response, Socket, State) ->
     send_msg(Socket, term_to_string(Response)),

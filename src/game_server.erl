@@ -75,17 +75,18 @@ which_state(Who, Game, _Pid, GS) ->
         {go, Game, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {your_move, Game}),
-            {reply, {ok, please_wait}, play, GS#game_state{game=Game}};
+            {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
-                            {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play,
+                            {please_wait, Game}),
+            {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
         {done, G, Winner} ->
             lobby:game_over(Winner),
             gen_server:cast(that_guy(GS, Who),
-                            {game_over, G, Winner}),
-            {stop, normal, {game_over, G, Winner}, GS#game_state{game=G}}
+                            {redirect, {game_over, G, Winner}}),
+            {stop, normal, {redirect, {game_over, G, Winner}},
+             GS#game_state{game=G}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
@@ -110,11 +111,13 @@ handle_event(_Event, StateName, StateData) ->
 handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-handle_sync_event(game_status, _From, StateName, GS) ->
+handle_sync_event({game_status}, _From, StateName, GS) ->
     {reply, {ok, GS#game_state.game}, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
+handle_sync_event({board}, _From, StateName, #game_state{game = G} = GS) ->
+    {reply, {ok, reversi:game2lists(G)}, StateName, GS};
+handle_sync_event({opponent}, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
     {reply, Opponent, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
+handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
     {reply, Opponent, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
@@ -132,10 +135,16 @@ move(GameServer, Who, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Who, X, Y}).
 
 status(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, game_status).
+    gen_fsm:sync_send_all_state_event(GameServer, {game_status}).
 
 opponent(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, opponent).
+    gen_fsm:sync_send_all_state_event(GameServer, {opponent}).
 
+client_command(GameServer, {game_status} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {opponent} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {board} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
 client_command(GameServer, Request) ->
     gen_fsm:sync_send_event(GameServer, Request).
