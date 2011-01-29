@@ -75,17 +75,18 @@ which_state(Who, Game, _Pid, GS) ->
         {go, Game, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {your_move, Game}),
-            {reply, {ok, please_wait}, play, GS#game_state{game=Game}};
+            {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
-                            {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play,
+                            {please_wait, Game}),
+            {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
         {done, G, Winner} ->
             lobby:game_over(Winner),
             gen_server:cast(that_guy(GS, Who),
-                            {game_over, G, Winner}),
-            {stop, normal, {game_over, G, Winner}, GS#game_state{game=G}}
+                            {redirect, {game_over, G, Winner}}),
+            {stop, normal, {redirect, {game_over, G, Winner}},
+             GS#game_state{game=G}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
