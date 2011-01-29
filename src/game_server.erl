@@ -10,7 +10,7 @@
          , move/4
          , status/1
          , opponent/1
-         , client_request/2
+         , client_command/2
         ]).
 
 % Internal Interface
@@ -137,5 +137,5 @@ status(GameServer) ->
 opponent(GameServer) ->
     gen_fsm:sync_send_all_state_event(GameServer, opponent).
 
-client_request(GameServer, Request) ->
+client_command(GameServer, Request) ->
     gen_fsm:sync_send_event(GameServer, Request).

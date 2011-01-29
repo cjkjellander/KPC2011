@@ -77,7 +77,7 @@ handle_data(Socket, RawData, #state{ip = _IP, game_server=GS} = State) ->
             send_msg(Socket, term_to_string(Request)),
             State;
         _ ->
-            Response = game_server:client_request(GS, Request),
+            Response = game_server:client_command(GS, Request),
             handle_response(Response, Socket, State)
     end.
 
