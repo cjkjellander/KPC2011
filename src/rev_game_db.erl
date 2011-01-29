@@ -29,7 +29,6 @@
 -define(TABLE, game).
 -define(TABLE_ATTR, [{attributes, record_info(fields,game)}
                      , {disc_copies, node()}
-                     , {ram_copies, node()}
                     ]).
 
 %%====================================================================

@@ -25,7 +25,6 @@
 -define(TABLE, ?MODULE).
 -define(TABLE_ATTR, [{attributes, record_info(fields,?MODULE)}
                      , {disc_copies, node()}
-                     , {ram_copies, node()}
                     ]).
 
 %%====================================================================
