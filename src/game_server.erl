@@ -133,10 +133,10 @@ move(GameServer, Who, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Who, X, Y}).
 
 status(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, game_status).
+    gen_fsm:sync_send_all_state_event(GameServer, {game_status}).
 
 opponent(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, opponent).
+    gen_fsm:sync_send_all_state_event(GameServer, {opponent}).
 
 client_command(GameServer, Request) ->
     gen_fsm:sync_send_event(GameServer, Request).
