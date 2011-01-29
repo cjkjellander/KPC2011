@@ -62,8 +62,8 @@ play({move, Who, X, Y}, {Pid,_}, #game_state{game=#game{togo=Who}} = GS) ->
     case reversi:move(GS#game_state.game, X, Y, Who) of
         {ok, NewG} ->
             which_state(Who, NewG, Pid, GS);
-        {error, {illegal_move, _G}} ->
-            {reply, {error, illegal_move}, play, GS}
+        Error ->
+            {reply, Error, play, GS}
     end;
 play({move, _, _, _}, _, GS) ->
     {reply, {error, notyourturn}, play, GS};
