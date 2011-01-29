@@ -124,16 +124,13 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
     case RPs of
         [OtherPlayer | Ps] ->
             %% Opponent found, set up a new game!
-            Black = OtherPlayer,
-            White = From,
             {ok, Game} = rev_game_db:new_game(),
             GameID = #game.id,
-            {ok, GameServer} = game_server_sup:start_game_server(GameID, Black, White),
+            {ok, GameServer} = game_server_sup:start_game_server(GameID),
             G = #duel{game_id = GameID,
                       game_server = GameServer,
-                      game_data = Game,
-                      black = Black,
-                      white = White},
+                      game_data = Game},
+            %% FIXME: The lobby wants to know who's black and who's white.
             NewLS = LS#lobby_state{ready = Ps, games = [G | Gs]},
             gen_server:cast(OtherPlayer,
                             {redirect, {lets_play, GameServer, GameID}}),

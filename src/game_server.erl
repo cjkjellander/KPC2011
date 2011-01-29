@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/3
+-export([start_link/1
         ]).
 
 %% External Interface
@@ -33,12 +33,12 @@
 
 -record(game_state, {game, black, white}).
 
-start_link(N, BlackPlayer, WhitePlayer) ->
-    gen_fsm:start_link(?MODULE, [N, BlackPlayer, WhitePlayer], []).
+start_link(N) ->
+    gen_fsm:start_link(?MODULE, N, []).
 
-init([N, Black, White]) ->
+init(N) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G, black=Black, white=White},
+    GS = #game_state{game=G},
     {ok, setup, GS}.
 
 setup({login, ?B}, {Pid,_}, GS) ->
