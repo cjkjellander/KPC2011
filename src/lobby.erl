@@ -6,7 +6,9 @@
 %% API
 -export([
          start_link/0,
-         client_command/1
+         client_command/1,
+         game_over/1,
+         game_crash/2
         ]).
 
 %% gen_server callbacks
@@ -32,6 +34,16 @@
           pid
         }).
 
+%% An ongoing game.
+-record(duel,
+        {
+          game_id,
+          game_server,
+          game_data,
+          black,
+          white
+        }).
+
 
 %%% API
 
@@ -41,6 +53,12 @@ start_link() ->
 %% This functions is called by the client handler.
 client_command(Command) ->
     gen_server:call(reversi_lobby, {cmd, Command}).
+
+game_over(Winner) ->
+    gen_server:cast(reversi_lobby, {game_over, self(), Winner}).
+
+game_crash(Reason, GameState) ->
+    gen_server:cast(reversi_lobby, {game_server_crash, Reason, GameState}).
 
 %% enter(Name) ->
 %%     gen_server:call(reversi_lobby, {enter, Name}).
@@ -72,9 +90,11 @@ terminate(_Reason, _State) ->
 %%% Internal functions
 
 handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games = Gs} = LS) ->
-    case lists:keyfind(GameID, 1, Gs) of
-        {GameID, Server} -> handle_client_game_command(Server, From, Command, LS);
-        false            -> {reply, {error, unknown_game}, LS}
+    case lists:keyfind(GameID, #duel.game_id, Gs) of
+        G = #duel{} ->
+            handle_client_game_command(G, From, Command, LS);
+        false ->
+            {reply, {error, unknown_game}, LS}
     end;
 
 handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
@@ -102,12 +122,19 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = RPs, games = Gs} = LS) ->
     case RPs of
-        [OtherPlayer] ->
-            {ok, #game{id = GameID}} = rev_game_db:new_game(),
-            {ok, GameServer} =
-                game_server_sup:start_game_server(GameID, self()),
-            NewLS = LS#lobby_state{ready = [],
-                                   games = [{GameID, GameServer} | Gs]},
+        [OtherPlayer | Ps] ->
+            %% Opponent found, set up a new game!
+            Black = OtherPlayer,
+            White = From,
+            {ok, Game} = rev_game_db:new_game(),
+            GameID = #game.id,
+            {ok, GameServer} = game_server_sup:start_game_server(GameID, Black, White),
+            G = #duel{game_id = GameID,
+                      game_server = GameServer,
+                      game_data = Game,
+                      black = Black,
+                      white = White},
+            NewLS = LS#lobby_state{ready = Ps, games = [G | Gs]},
             gen_server:cast(OtherPlayer,
                             {redirect, {lets_play, GameServer, GameID}}),
             {reply, {redirect, {lets_play, GameServer, GameID}}, NewLS};
@@ -116,12 +143,12 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
             {reply, {ok, waiting_for_challenge}, NewLS}
     end;
 
-
 handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || {Id, _GameServer} <- Games]}, LS};
+    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
 
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
 
-handle_client_game_command(_GameServer, _From, _Command, LS) ->
+
+handle_client_game_command(#duel{}, _From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.

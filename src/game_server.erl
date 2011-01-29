@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/1
+-export([start_link/3
         ]).
 
 %% External Interface
@@ -10,6 +10,7 @@
          , move/4
          , status/1
          , opponent/1
+         , client_command/2
         ]).
 
 % Internal Interface
@@ -30,14 +31,14 @@
 
 -include("../include/reversi.hrl").
 
--record(game_state, {game, black, white, lobby}).
+-record(game_state, {game, black, white}).
 
-start_link({N, Lobby}) ->
-    gen_fsm:start_link(?MODULE, {N, Lobby}, []).
+start_link(N, BlackPlayer, WhitePlayer) ->
+    gen_fsm:start_link(?MODULE, [N, BlackPlayer, WhitePlayer], []).
 
-init({N, Lobby}) ->
+init([N, Black, White]) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G, lobby=Lobby},
+    GS = #game_state{game=G, black=Black, white=White},
     {ok, setup, GS}.
 
 setup({login, ?B}, {Pid,_}, GS) ->
@@ -69,7 +70,7 @@ play({move, _, _, _}, _, GS) ->
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
 
-which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
+which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
             gen_server:cast(that_guy(GS, Who),
@@ -81,7 +82,7 @@ which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
             {reply, {your_move, NewGame#game.board}, play,
              GS#game_state{game=NewGame}};
         {done, G, Winner} ->
-            gen_server:cast(L, {game_over, G, Winner}),
+            lobby:game_over(Winner),
             gen_server:cast(that_guy(GS, Who),
                             {game_over, G, Winner}),
             {stop, normal, {game_over, G, Winner}, GS#game_state{game=G}}
@@ -118,8 +119,8 @@ handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-terminate(Reason, _, #game_state{lobby=L} = GS) ->
-    gen_server:cast(L, {crash, Reason, GS}).
+terminate(Reason, _, GS) ->
+    lobby:game_crash(Reason, GS).
 
 
 %% Interface functions
@@ -135,3 +136,6 @@ status(GameServer) ->
 
 opponent(GameServer) ->
     gen_fsm:sync_send_all_state_event(GameServer, opponent).
+
+client_command(GameServer, Request) ->
+    gen_fsm:sync_send_event(GameServer, Request).
