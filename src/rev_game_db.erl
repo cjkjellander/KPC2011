@@ -27,7 +27,10 @@
 
 -define(SERVER, reversi_game_db).
 -define(TABLE, game).
--define(TABLE_ATTR, [{attributes, record_info(fields,game)}]).
+-define(TABLE_ATTR, [{attributes, record_info(fields,game)}
+                     , {disc_copies, node()}
+                     , {ram_copies, node()}
+                    ]).
 
 %%====================================================================
 %% API
