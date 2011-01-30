@@ -6,7 +6,7 @@
 -define(DEFAULT_PORT, 7676).
 
 start(normal, _Args) ->
-    Port = case application:get_env(contest_server, port) of
+    Port = case application:get_env(reversi, port) of
                {ok, P} -> P;
                undefined -> ?DEFAULT_PORT
            end,
