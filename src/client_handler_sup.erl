@@ -6,11 +6,12 @@
 
 %% API
 -export([
-         start_link/1,
+         start_link/0,
          start_client_handler/1,
          start_client_handler/2
         ]).
 
+-define(DEFAULT_PORT, 7676).
 
 %%% Supervisor callbacks
 
@@ -24,7 +25,12 @@ init(LSock) ->
 
 %%% API
 
-start_link(LSock) ->
+start_link() ->
+    Port = case application:get_env(reversi, port) of
+               {ok, P} -> P;
+               undefined -> ?DEFAULT_PORT
+           end,
+    {ok, LSock} = gen_tcp:listen(Port, [{active, true}, {reuseaddr, true}]),
     supervisor:start_link({local, reversi_client_handler_supervisor},
                           ?MODULE,
                           LSock).
