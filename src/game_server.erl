@@ -80,7 +80,7 @@ which_state(Who, Game, _Pid, GS) ->
             {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
-            lobby:game_over(Game, this_guy(Winner)),
+            lobby:game_over(Game, this_guy(GS, Winner)),
             GameOver = {redirect, {game_over, Game, Winner}},
             gen_server:cast(that_guy(GS, Who), GameOver),
             {stop, normal, GameOver, GS#game_state{game=Game}}
