@@ -18,7 +18,6 @@
     reversi_app,
     reversi_sup,
     rev_game_db,
-    rev_serv,
     servers_sup,
     tcp_parse
    ]},
