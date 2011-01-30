@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/3
+-export([start_link/1
         ]).
 
 %% External Interface
@@ -33,12 +33,12 @@
 
 -record(game_state, {game, black, white}).
 
-start_link(N, BlackPlayer, WhitePlayer) ->
-    gen_fsm:start_link(?MODULE, [N, BlackPlayer, WhitePlayer], []).
+start_link(N) ->
+    gen_fsm:start_link(?MODULE, N, []).
 
-init([N, Black, White]) ->
+init(N) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G, black=Black, white=White},
+    GS = #game_state{game=G},
     {ok, setup, GS}.
 
 setup({login, ?B}, {Pid,_}, GS) ->
@@ -73,20 +73,17 @@ play(_, _Pid, GS) ->
 which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {your_move, Game}),
+            gen_server:cast(that_guy(GS, Who), {your_move, Game}),
             {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {please_wait, Game}),
+            gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
             {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
-        {done, G, Winner} ->
-            lobby:game_over(Winner),
-            gen_server:cast(that_guy(GS, Who),
-                            {redirect, {game_over, G, Winner}}),
-            {stop, normal, {redirect, {game_over, G, Winner}},
-             GS#game_state{game=G}}
+        {done, Game, Winner} ->
+            lobby:game_over(Game, this_guy(GS, Winner)),
+            GameOver = {redirect, {game_over, Game, Winner}},
+            gen_server:cast(that_guy(GS, Who), GameOver),
+            {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
@@ -122,8 +119,13 @@ handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, whi
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-terminate(Reason, _, GS) ->
-    lobby:game_crash(Reason, GS).
+
+terminate(normal, _, #game_state{}) ->
+    ok;
+terminate(Reason, _, #game_state{game = Game, black = B, white = W}) ->
+    gen_server:cast(B, {redirect, {game_crash, Game}}),
+    gen_server:cast(W, {redirect, {game_crash, Game}}),
+    lobby:game_crash(Reason, Game, B, W).
 
 
 %% Interface functions
