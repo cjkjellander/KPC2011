@@ -6,19 +6,19 @@
 
 %% API
 -export([
-         start_link/1
+         start_link/0
         ]).
 
 
 %%% Supervisor callbacks
 
-init(LSock) ->
+init(_Args) ->
     {ok,
      {
        {rest_for_one, 2, 2000},
        [
         servers_sup_child_spec(),
-        client_handler_sup_child_spec(LSock),
+        client_handler_sup_child_spec(),
         game_server_sup_child_spec()
        ]
      }}.
@@ -26,8 +26,8 @@ init(LSock) ->
 
 %%% API
 
-start_link(LSock) ->
-    supervisor:start_link({local, reversi_supervisor}, ?MODULE, LSock).
+start_link() ->
+    supervisor:start_link({local, reversi_supervisor}, ?MODULE, []).
 
 
 %%% Internal functions
@@ -43,10 +43,10 @@ servers_sup_child_spec() ->
       [servers_sup]
     }.
 
-client_handler_sup_child_spec(LSock) ->
+client_handler_sup_child_spec() ->
     {
       client_handler_sup,
-      {client_handler_sup, start_link, [LSock]},
+      {client_handler_sup, start_link, []},
       permanent,
       5000,
       supervisor,

@@ -19,9 +19,16 @@
                 , socket
                }).
 
-start_link(LSock) ->
-    gen_server:start_link(?MODULE, [LSock], []).
+start_link(Args) ->
+    gen_server:start_link(?MODULE, Args, []).
 
+init([]) ->
+    Port = case application:get_env(reversi, port) of
+               {ok, P} -> P;
+               undefined -> ?DEFAULT_PORT
+           end,
+    {ok, LSock} = gen_tcp:listen(Port, [{active, true}, {reuseaddr, true}]),
+    init([LSock]);
 init([LSock]) ->
     {ok, #state{lsock = LSock}, 0}.
 

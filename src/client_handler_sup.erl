@@ -6,7 +6,7 @@
 
 %% API
 -export([
-         start_link/1,
+         start_link/0,
          start_client_handler/1,
          start_client_handler/2
         ]).
@@ -14,20 +14,18 @@
 
 %%% Supervisor callbacks
 
-init(LSock) ->
+init(_Args) ->
     {ok,
      {
        {one_for_one, 1, 5000},
-       [client_handler_child_spec(client_handler_tcp, [LSock])]
+       [client_handler_child_spec(client_handler_tcp, [])]
      }}.
 
 
 %%% API
 
-start_link(LSock) ->
-    supervisor:start_link({local, reversi_client_handler_supervisor},
-                          ?MODULE,
-                          LSock).
+start_link() ->
+    supervisor:start_link({local, reversi_client_handler_supervisor}, ?MODULE, []).
 
 start_client_handler(Module) ->
     start_client_handler(Module, []).
@@ -42,7 +40,7 @@ start_client_handler(Module, Args) ->
 client_handler_child_spec(Module, Args) ->
     {
       {client_handler, make_ref()},
-      {Module, start_link, Args},
+      {Module, start_link, [Args]},
       temporary,
       5000,
       worker,
