@@ -110,6 +110,8 @@ handle_event(_Event, StateName, StateData) ->
 handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
+handle_sync_event({availabe_moves, Game, Who}, _From, StateName, GS) ->
+    {reply, {ok, reversi:check_avail(Game, Who)}, StateName, GS};
 handle_sync_event({game_status}, _From, StateName, GS) ->
     {reply, {ok, GS#game_state.game}, StateName, GS};
 handle_sync_event({board}, _From, StateName, #game_state{game = G} = GS) ->
