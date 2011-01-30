@@ -79,10 +79,10 @@ play(_, _Pid, GS) ->
 which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
-            gen_server:cast(that_guy(GS, Who), {your_move, Game}),
+            gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game}}),
             {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
-            gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
+            gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game}}),
             {reply, {ok, {your_move, NewGame}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
