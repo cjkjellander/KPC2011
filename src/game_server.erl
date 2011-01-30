@@ -49,15 +49,15 @@ setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
 black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game.board}}),
-    {reply, {ok, {please_wait, Game#game.board}},
+    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game{moves=[]}}}),
+    {reply, {ok, {please_wait, Game#game{moves=[]}}},
      play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
 white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game.board}}),
-    {reply, {ok, {your_move, Game#game.board}},
+    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game{moves=[]}}}),
+    {reply, {ok, {your_move, Game#game{moves=[]}}},
      play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
@@ -82,13 +82,13 @@ which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
             gen_server:cast(that_guy(GS, Who),
-                            {ok, {your_move, Game#game.board}}),
-            {reply, {ok, {please_wait, Game#game.board}},
+                            {ok, {your_move, Game#game{moves=[]}}}),
+            {reply, {ok, {please_wait, Game#game{moves=[]}}},
              play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
-                            {ok, {please_wait, NewGame#game.board}}),
-            {reply, {ok, {your_move, NewGame#game.board}}, play,
+                            {ok, {please_wait, NewGame#game{moves=[]}}}),
+            {reply, {ok, {your_move, NewGame#game{moves=[]}}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
             lobby:game_over(Game, this_guy(GS, Winner)),
