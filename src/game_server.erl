@@ -81,12 +81,12 @@ which_state(Who, Game, _Pid, GS) ->
                             {please_wait, Game}),
             {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
-        {done, G, Winner} ->
-            lobby:game_over(Winner),
+        {done, Game, Winner} ->
+            lobby:game_over(Game, Winner),
             gen_server:cast(that_guy(GS, Who),
-                            {redirect, {game_over, G, Winner}}),
-            {stop, normal, {redirect, {game_over, G, Winner}},
-             GS#game_state{game=G}}
+                            {redirect, {game_over, Game, Winner}}),
+            {stop, normal, {redirect, {game_over, Game, Winner}},
+             GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
@@ -122,6 +122,9 @@ handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, whi
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
+
+terminate(normal, _, #game_state{}) ->
+    ok;
 terminate(Reason, _, #game_state{game = Game, black = B, white = W}) ->
     gen_server:cast(B, {redirect, {game_crash, Game}}),
     gen_server:cast(W, {redirect, {game_crash, Game}}),
