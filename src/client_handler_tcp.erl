@@ -71,11 +71,14 @@ handle_data(Socket, RawData, #state{ip = IP, game_server=GS} = State) ->
             handle_response(Response, Socket, State)
     end.
 
-handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
-    send_msg(Socket, term_to_string({ok, {lets_play, GS, Gid}})),
+handle_response({redirect, {lets_play, GS, Who, Gid}}, Socket, State) ->
+    send_msg(Socket, term_to_string({ok, {lets_play, Who, Gid}})),
     State#state{game_server=GS};
 handle_response({redirect, {game_over, G, Win}}, Socket, State) ->
     send_msg(Socket, term_to_string({ok, {game_over, G, Win}})),
+    State#state{game_server=undefined};
+handle_response({redirect, {game_crash, G}}, Socket, State) ->
+    send_msg(Socket, term_to_string({error, {game_crash, G}})),
     State#state{game_server=undefined};
 
 handle_response(Response, Socket, State) ->

@@ -67,7 +67,7 @@ bit_set(X, Y) ->
 move(#game{} = G, X, Y, _) when X>7; X<0; Y>7; Y<0 ->
     {error, {illegal_move, G}};
 move(#game{board = B} = G, X, Y, Who) when Who =:= ?B orelse
-                                                       Who =:= ?W ->
+                                           Who =:= ?W ->
     case piece(B, X, Y) of
         ?E -> maybe_move(G, X, Y, Who);
         _  -> {error, {illegal_move, G}}

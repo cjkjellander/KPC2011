@@ -12,6 +12,7 @@
     gen_client_handler,
     lobby,
     rand_bot,
+    rand_bot2,
     rand_bot_sup,
     rev_bot,
     reversi,
