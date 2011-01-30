@@ -19,7 +19,7 @@ login(Sock, Name, Passwd) ->
     Reply = send_cmd(Sock, Login),
     case parse_data(Reply) of
         {ok, welcome} -> ready(Sock, Name, Passwd);
-        _ -> ok
+        Error -> io:format("~p~n", [Error])
     end.
 
 ready(Sock, Name, Passwd) ->
@@ -30,7 +30,7 @@ ready(Sock, Name, Passwd) ->
             wait_for_chal(Sock, Name, Passwd);
         {ok, {lets_play, Who, Game}} ->
                 start_game(Sock, Name, Passwd, Who, Game);
-        _ -> ok
+        Error -> io:format("~p~n", [Error])
     end.
 
 wait_for_chal(Sock, Name, Passwd) ->
@@ -39,7 +39,7 @@ wait_for_chal(Sock, Name, Passwd) ->
     case parse_data(Reply) of
         {ok, {lets_play, Who, Game}} ->
             start_game(Sock, Name, Passwd, Who, Game);
-        _ -> ok
+        Error -> io:format("~p~n", [Error])
     end.
 
 start_game(Sock, Name, Passwd, Who, Game) ->
@@ -52,7 +52,7 @@ start_game(Sock, Name, Passwd, Who, Game) ->
             do_move(Sock, Name, Passwd, Who, NewGame);
         {ok, {please_wait, NewGame}} ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
-        _ -> ok
+        Error -> io:format("~p~n", [Error])
     end.
 
 do_wait(Sock, Name, Passwd, Who, _Game) ->
@@ -63,14 +63,18 @@ do_wait(Sock, Name, Passwd, Who, _Game) ->
             do_move(Sock, Name, Passwd, Who, NewGame);
         {ok, {please_wait, NewGame}} ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
-        _ -> ok
+        {ok, {game_over, _NewGame, _Win}} ->
+            ready(Sock, Name, Passwd);
+        Error -> io:format("~p~n", [Error])
     end.
 
 do_move(Sock, Name, Passwd, Who, Game) ->
+    reversi:draw_board(Game),
     M = reversi:check_avail(Game, Who),
     {X, Y, _} = reversi:rand_pick(M),
     Ready = mk_move(Who, X, Y),
     Reply = send_cmd(Sock, Ready),
+    io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
         {ok, {your_move, NewGame}} ->
             do_move(Sock, Name, Passwd, Who, NewGame);
@@ -78,7 +82,7 @@ do_move(Sock, Name, Passwd, Who, Game) ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
         {ok, {game_over, _NewGame, _Win}} ->
             ready(Sock, Name, Passwd);
-        _ -> ok
+        Error -> io:format("~p~n", [Error])
     end.
 
 

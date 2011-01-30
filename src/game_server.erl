@@ -49,14 +49,16 @@ setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
 black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game}}),
-    {reply, {ok, {please_wait, Game}}, play, GS#game_state{white=Pid}};
+    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game{moves=[]}}}),
+    {reply, {ok, {please_wait, Game#game{moves=[]}}},
+     play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
 white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game}}),
-    {reply, {ok, {your_move, Game}}, play, GS#game_state{black=Pid}};
+    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game{moves=[]}}}),
+    {reply, {ok, {your_move, Game#game{moves=[]}}},
+     play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
@@ -79,24 +81,29 @@ play(_, _Pid, GS) ->
 which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
-            gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game}}),
-            {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
+            gen_server:cast(that_guy(GS, Who),
+                            {ok, {your_move, Game#game{moves=[]}}}),
+            {reply, {ok, {please_wait, Game#game{moves=[]}}},
+             play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
-            gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game}}),
-            {reply, {ok, {your_move, NewGame}}, play,
+            gen_server:cast(that_guy(GS, Who),
+                            {ok, {please_wait, NewGame#game{moves=[]}}}),
+            {reply, {ok, {your_move, NewGame#game{moves=[]}}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
-            lobby:game_over(Game, this_guy(GS, Winner)),
-            GameOver = {redirect, {game_over, Game, Winner}},
+            lobby:game_over(Game, Winner),
+            GameOver = {redirect, {game_over, Game#game{moves=[]}, Winner}},
             gen_server:cast(that_guy(GS, Who), GameOver),
             {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
-this_guy(#game_state{white=W}, ?W) -> W.
+this_guy(#game_state{white=W}, ?W) -> W;
+this_guy(_, ?E)                    -> undefined.
 
 that_guy(#game_state{black=B}, ?W) -> B;
-that_guy(#game_state{white=W}, ?B) -> W.
+that_guy(#game_state{white=W}, ?B) -> W;
+that_guy(_, ?E)                    -> undefined.
 
 
 p2a(?B) -> black;
