@@ -42,19 +42,21 @@ init(N) ->
     {ok, setup, GS}.
 
 setup({login, ?B}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, black_ready, GS#game_state{black=Pid}};
+    {reply, {ok, wait_for_other_guy}, black_ready, GS#game_state{black=Pid}};
 setup({login, ?W}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, white_ready, GS#game_state{white=Pid}};
+    {reply, {ok, wait_for_other_guy}, white_ready, GS#game_state{white=Pid}};
 setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
-black_ready({login, ?W}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{white=Pid}};
+black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    gen_server:cast(that_guy(GS, Who), {your_move, Game}),
+    {reply, {ok, {please_wait, Game}}, play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
-white_ready({login, ?B}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{black=Pid}};
+white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
+    {reply, {ok, {your_move, Game}}, play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
@@ -77,7 +79,7 @@ which_state(Who, Game, _Pid, GS) ->
             {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
-            {reply, {ok, {your_move, NewGame#game.board}}, play,
+            {reply, {ok, {your_move, NewGame}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
             lobby:game_over(Game, this_guy(GS, Winner)),
