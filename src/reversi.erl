@@ -23,7 +23,9 @@ draw_board(#game{} = G) ->
     io:format(" +--------+~n"),
     draw_lines(G, 0),
     io:format(" +--------+~n"
-              "  ABCDEFGH~n").
+              "  ABCDEFGH~n");
+draw_board(Board) ->
+    draw_board(#game{board = Board}).
 
 draw_lines(_, 8) -> ok;
 draw_lines(#game{} = G, Y) ->
@@ -145,13 +147,16 @@ count_ones(I, Ones) ->
         0 -> count_ones(I bsr 1, Ones)
     end.
 
+
 check_avail(#game{} = G, Who) ->
     [{X, Y, GN} || X <- [0,1,2,3,4,5,6,7],
                    Y <- [0,1,2,3,4,5,6,7],
                    case move(G, X, Y, Who) of
                        {ok, GN} -> true;
                        GN -> false
-                   end].
+                   end];
+check_avail(Board, Who) ->
+    check_avail(#game{board = Board}, Who).
 
 game2lists(#game{board=Board}) ->
     [ [piece(Board,X,Y) || X <- [0,1,2,3,4,5,6,7]]
