@@ -125,7 +125,7 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
         [OtherPlayer | Ps] ->
             %% Opponent found, set up a new game!
             {ok, Game} = rev_game_db:new_game(),
-            GameID = #game.id,
+            GameID = Game#game.id,
             {ok, GameServer} = game_server_sup:start_game_server(GameID),
             G = #duel{game_id = GameID,
                       game_server = GameServer,
