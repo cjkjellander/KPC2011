@@ -54,7 +54,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 handle_data(Socket, RawData, #state{ip = IP, game_server=GS} = State) ->
-    Request = parse_data(RawData),
+    Request = tcp_parse:parse_data(RawData),
     case Request of
         [] ->
             %% do nothing
@@ -90,18 +90,6 @@ handle_response(Response, Socket, State) ->
     State.
 
 
-
-parse_data("\n") ->
-    [];
-parse_data(RawData) ->
-    try
-        {ok, Tokens, _} = erl_scan:string(RawData),
-        {ok, Term} = erl_parse:parse_term(Tokens),
-        Term
-    catch
-        _:_ ->
-            {error, could_not_parse_command}
-    end.
 
 term_to_string(Term) ->
     lists:flatten(io_lib:format("~p", [Term])).

@@ -4,19 +4,22 @@
   {vsn, "0.1"},
   {modules,
    [
+    bot,
     client_handler_sup,
     client_handler_tcp,
     game_server,
     game_server_sup,
     gen_client_handler,
     lobby,
+    rand_bot,
+    rand_bot_sup,
     rev_bot,
     reversi,
     reversi_app,
     reversi_sup,
     rev_game_db,
-    rev_serv,
-    servers_sup
+    servers_sup,
+    tcp_parse
    ]},
   {registered,
    [
