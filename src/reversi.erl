@@ -175,9 +175,9 @@ move_check(#game{togo = Who} = G) ->
 winner(#game{board = B}) ->
     {Bl, Wh} = score(B),
     case X=Bl - Wh of
-        X when X>0 -> {?B, Bl, Wh};
-        X when X<0 -> {?W, Bl, Wh};
-        _   -> {?E, Bl, Wh}
+        X when X>0 -> ?B;
+        X when X<0 -> ?W;
+        _          -> ?E
     end.
 
 rand_play(N) ->
