@@ -10,7 +10,7 @@ start(normal, _Args) ->
                {ok, P} -> P;
                undefined -> ?DEFAULT_PORT
            end,
-    {ok, LSock} = gen_tcp:listen(Port, [{active, true}]),
+    {ok, LSock} = gen_tcp:listen(Port, [{active, true}, {reuseaddr, true}]),
     %% FIXME: Make sure database tables exists and so on
     reversi_sup:start_link(LSock).
 
