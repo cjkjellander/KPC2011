@@ -69,8 +69,9 @@ play({move, Who, X, Y}, {Pid,_}, #game_state{game=#game{togo=Who}} = GS) ->
     end;
 play({move, _, _, _}, _, GS) ->
     {reply, {error, notyourturn}, play, GS};
-play({quit}, _Pid, #game_state{game=Game} = GS) ->
+play({quit, Who}, _Pid, #game_state{game=Game} = GS) ->
     GameOver = {redirect, {game_over, Game, ?E}},
+    gen_server:cast(that_guy(GS, Who), GameOver),
     {stop, normal, GameOver, GS#game_state{game=Game}};
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
