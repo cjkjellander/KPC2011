@@ -24,7 +24,7 @@
 -define(SERVER, ?MODULE).
 -define(TABLE, ?MODULE).
 -define(TABLE_ATTR, [{attributes, record_info(fields,?MODULE)}
-                     , {disc_copies, node()}
+                     , {disc_copies, [node()]}
                     ]).
 
 %%====================================================================
