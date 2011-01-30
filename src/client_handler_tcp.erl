@@ -13,7 +13,11 @@
 
 -define(DEFAULT_PORT, 7676).
 
--record(state, {lsock}).
+-record(state, {lsock
+                , ip
+                , game_server
+                , socket
+               }).
 
 start_link(LSock) ->
     gen_server:start_link(?MODULE, [LSock], []).
@@ -25,7 +29,10 @@ handle_call(Msg, _From, State) ->
     {reply, {ok, Msg}, State}.
 
 handle_cast(stop, State) ->
-    {stop, normal, State}.
+    {stop, normal, State};
+handle_cast(Response, #state{socket=Socket} = State) ->
+    NewState = handle_response(Response, Socket, State),
+    {noreply, NewState}.
 
 handle_info({tcp, Socket, RawData}, State) ->
     NewState = handle_data(Socket, RawData, State),
@@ -37,7 +44,7 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     {ok, {IP, _Port}} = inet:sockname(Socket),
     %% FIXME: Do stuff with the IP-address.
     client_handler_sup:start_client_handler(?MODULE, [LSock]),
-    {noreply, State}.
+    {noreply, State#state{ip = IP, socket=Socket}}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -46,27 +53,43 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Internal functions
-handle_data(Socket, RawData, State) ->
+handle_data(Socket, RawData, #state{ip = IP, game_server=GS} = State) ->
     Request = tcp_parse:parse_data(RawData),
     case Request of
         [] ->
-                                                % do nothing
+            %% do nothing
             State;
         {error, could_not_parse_command} ->
             send_msg(Socket, term_to_string(Request)),
             State;
         _ ->
-            Response = lobby:client_command(Request),
-            send_msg(Socket, term_to_string(Response)),
-
-            if Response =:= good_bye ->
-                    gen_tcp:close(Socket);
-               true ->
-                    ok
-            end,
-
-            State
+            Response =
+                case GS of
+                    undefined -> lobby:client_command({Request, IP});
+                    _         -> game_server:client_command(GS, Request)
+                end,
+            handle_response(Response, Socket, State)
     end.
+
+handle_response({redirect, {lets_play, GS, Gid}}, Socket, State) ->
+    send_msg(Socket, term_to_string({ok, {lets_play, GS, Gid}})),
+    State#state{game_server=GS};
+handle_response({redirect, {game_over, G, Win}}, Socket, State) ->
+    send_msg(Socket, term_to_string({ok, {game_over, G, Win}})),
+    State#state{game_server=undefined};
+
+handle_response(Response, Socket, State) ->
+    send_msg(Socket, term_to_string(Response)),
+
+    if Response =:= good_bye ->
+            gen_tcp:close(Socket);
+       true ->
+            ok
+    end,
+
+    State.
+
+
 
 term_to_string(Term) ->
     lists:flatten(io_lib:format("~p", [Term])).

@@ -23,7 +23,9 @@
 
 -define(SERVER, ?MODULE).
 -define(TABLE, ?MODULE).
--define(TABLE_ATTR, [{attributes, record_info(fields,?MODULE)}]).
+-define(TABLE_ATTR, [{attributes, record_info(fields,?MODULE)}
+                     , {disc_copies, node()}
+                    ]).
 
 %%====================================================================
 %% API
@@ -106,5 +108,5 @@ gen_hash(Salt, Password) ->
     {Salt, Hash}.
 
 check_passwd({Salt, Hash}, Password) ->
-    Hash2 = gen_hash(Salt, Password),
+    {_, Hash2} = gen_hash(Salt, Password),
     Hash =:= Hash2.

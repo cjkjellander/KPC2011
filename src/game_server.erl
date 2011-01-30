@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/1
+-export([start_link/3
         ]).
 
 %% External Interface
@@ -10,6 +10,7 @@
          , move/4
          , status/1
          , opponent/1
+         , client_command/2
         ]).
 
 % Internal Interface
@@ -30,14 +31,14 @@
 
 -include("../include/reversi.hrl").
 
--record(game_state, {game, black, white, lobby}).
+-record(game_state, {game, black, white}).
 
-start_link({N, Lobby}) ->
-    gen_fsm:start_link(?MODULE, {N, Lobby}, []).
+start_link(N, BlackPlayer, WhitePlayer) ->
+    gen_fsm:start_link(?MODULE, [N, BlackPlayer, WhitePlayer], []).
 
-init({N, Lobby}) ->
+init([N, Black, White]) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G, lobby=Lobby},
+    GS = #game_state{game=G, black=Black, white=White},
     {ok, setup, GS}.
 
 setup({login, ?B}, {Pid,_}, GS) ->
@@ -69,22 +70,23 @@ play({move, _, _, _}, _, GS) ->
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
 
-which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
+which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {your_move, Game}),
-            {reply, {ok, please_wait}, play, GS#game_state{game=Game}};
+            {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
-                            {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play,
+                            {please_wait, Game}),
+            {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
         {done, G, Winner} ->
-            gen_server:cast(L, {game_over, G, Winner}),
+            lobby:game_over(Winner),
             gen_server:cast(that_guy(GS, Who),
-                            {game_over, G, Winner}),
-            {stop, normal, {game_over, G, Winner}, GS#game_state{game=G}}
+                            {redirect, {game_over, G, Winner}}),
+            {stop, normal, {redirect, {game_over, G, Winner}},
+             GS#game_state{game=G}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
@@ -109,17 +111,19 @@ handle_event(_Event, StateName, StateData) ->
 handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-handle_sync_event(game_status, _From, StateName, GS) ->
+handle_sync_event({game_status}, _From, StateName, GS) ->
     {reply, {ok, GS#game_state.game}, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
+handle_sync_event({board}, _From, StateName, #game_state{game = G} = GS) ->
+    {reply, {ok, reversi:game2lists(G)}, StateName, GS};
+handle_sync_event({opponent}, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
     {reply, Opponent, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
+handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
     {reply, Opponent, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-terminate(Reason, _, #game_state{lobby=L} = GS) ->
-    gen_server:cast(L, {crash, Reason, GS}).
+terminate(Reason, _, GS) ->
+    lobby:game_crash(Reason, GS).
 
 
 %% Interface functions
@@ -131,7 +135,16 @@ move(GameServer, Who, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Who, X, Y}).
 
 status(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, game_status).
+    gen_fsm:sync_send_all_state_event(GameServer, {game_status}).
 
 opponent(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, opponent).
+    gen_fsm:sync_send_all_state_event(GameServer, {opponent}).
+
+client_command(GameServer, {game_status} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {opponent} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {board} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, Request) ->
+    gen_fsm:sync_send_event(GameServer, Request).
