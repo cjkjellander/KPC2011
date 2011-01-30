@@ -68,7 +68,7 @@ wait_long_reply(_Timeout) ->
     receive
 	Reply ->
 	    {value, Reply}
-    after 100000 ->
+    after 1000000 ->
 	    timeout
     end.
 
