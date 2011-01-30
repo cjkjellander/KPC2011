@@ -8,7 +8,7 @@
          start_link/0,
          client_command/1,
          game_over/1,
-         game_crash/2
+         game_crash/4
         ]).
 
 %% gen_server callbacks
@@ -57,8 +57,9 @@ client_command(Command) ->
 game_over(Winner) ->
     gen_server:cast(reversi_lobby, {game_over, self(), Winner}).
 
-game_crash(Reason, GameState) ->
-    gen_server:cast(reversi_lobby, {game_server_crash, Reason, GameState}).
+game_crash(Reason, Game, Black, White) ->
+    gen_server:cast(reversi_lobby,
+                    {game_server_crash, Reason, Game, Black, White}).
 
 %% enter(Name) ->
 %%     gen_server:call(reversi_lobby, {enter, Name}).
@@ -77,6 +78,14 @@ handle_call({cmd, Command}, From, State) ->
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
+handle_cast({game_over, GameServer, _Winner}, #lobby_state{games = Gs} = LS) ->
+    %% TODO: Store game results in database.
+    NewGs = lists:keydelete(GameServer, #duel.game_server, Gs),
+    {noreply, LS#lobby_state{games = NewGs}};
+handle_cast({game_crash, GameServer, _Black, _White}, #lobby_state{games = Gs} = LS) ->
+    %% TODO: Remove game from database (or store crash info?)
+    NewGs = lists:keydelete(GameServer, #duel.game_server, Gs),
+    {noreply, LS#lobby_state{games = NewGs}};
 handle_cast(_Request, State) ->
     {noreply, State}.
 

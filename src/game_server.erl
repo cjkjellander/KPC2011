@@ -122,8 +122,10 @@ handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, whi
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-terminate(Reason, _, GS) ->
-    lobby:game_crash(Reason, GS).
+terminate(Reason, _, #game_state{game = Game, black = B, white = W}) ->
+    gen_server:cast(B, {redirect, {game_crash, Game}}),
+    gen_server:cast(W, {redirect, {game_crash, Game}}),
+    lobby:game_crash(Reason, Game, B, W).
 
 
 %% Interface functions
