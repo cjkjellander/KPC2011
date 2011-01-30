@@ -7,6 +7,7 @@
          , score/1
          , check_avail/2
          , move_check/1
+         , rand_pick/1
          , winner/1
          , pname/1
          , rand_play/1
