@@ -79,7 +79,7 @@ mk_ready() ->
     "{i_want_to_play}.".
 
 mk_start(Who) ->
-    io_lib:format("{login,\"~s\"}.", [Who]).
+    io_lib:format("{login,\"~p\"}.", [Who]).
 
 
 
