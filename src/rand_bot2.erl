@@ -16,7 +16,7 @@ start(Host, Port, Name, Passwd) ->
 login(Sock, Name, Passwd) ->
     catch wait_reply(1000),
     Login = mk_login(Name, Passwd),
-    send_cmd(Login),
+    Reply = send_cmd(Sock, Login),
     case parse_data(Reply) of
         {ok, welcome} -> ready(Sock, Name, Passwd);
         _ -> ok
@@ -24,12 +24,29 @@ login(Sock, Name, Passwd) ->
 
 ready(Sock, Name, Passwd) ->
     Ready = mk_ready(),
-    send_cmd(Login),
+    Reply = send_cmd(Sock, Ready),
     case parse_data(Reply) of
-        {ok, welcome} -> start_game(Sock, Name, Passwd);
+        {ok, waiting_for_challenge} ->
+            wait_for_chal(Sock, Name, Passwd);
+        {ok, {lets_play, Who, Game}} ->
+                start_game(Sock, Name, Passwd, Who, Game);
         _ -> ok
     end.
 
+wait_for_chal(Sock, Name, Passwd) ->
+    {value, {_,_,Reply}} = wait_long_reply(Sock),
+    case parse_data(Reply) of
+        {ok, {lets_play, Who, Game}} ->
+            start_game(Sock, Name, Passwd, Who, Game);
+        _ -> ok
+    end.
+
+start_game(Sock, Name, Passwd, Who, Game) ->
+    Ready = mk_start(Who),
+    Reply = send_cmd(Sock, Ready),
+    case parse_data(Reply) of
+        _ -> ok
+    end.
 
 
 send_cmd(Sock, Cmd) ->
@@ -47,11 +64,24 @@ wait_reply(_Timeout) ->
 	    timeout
     end.
 
+wait_long_reply(_Timeout) ->
+    receive
+	Reply ->
+	    {value, Reply}
+    after 100000 ->
+	    timeout
+    end.
+
 mk_login(Name, Passwd) ->
     io_lib:format("{login,\"~s\",\"~s\"}.", [Name, Passwd]).
 
 mk_ready() ->
     "{i_want_to_play}.".
+
+mk_start(Who) ->
+    io_lib:format("{login,\"~s\"}.", [Who]).
+
+
 
 parse_data("\n") ->
     [];
