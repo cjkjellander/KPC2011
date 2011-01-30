@@ -45,8 +45,27 @@ start_game(Sock, Name, Passwd, Who, Game) ->
     Ready = mk_start(Who),
     Reply = send_cmd(Sock, Ready),
     case parse_data(Reply) of
+        {ok, wait_for_other_guy} ->
+            do_wait(Sock, Name, Passwd, Who, Game);
+        {ok, {your_move, NewGame}} ->
+            do_move(Sock, Name, Passwd, Who, NewGame);
+        {ok, {please_wait, NewGame}} ->
+            do_wait(Sock, Name, Passwd, Who, NewGame);
         _ -> ok
     end.
+
+do_wait(Sock, Name, Passwd, Who, Game) ->
+    {value, {_,_,Reply}} = wait_long_reply(Sock),
+    case parse_data(Reply) of
+        {ok, {your_move, NewGame}} ->
+            do_move(Sock, Name, Passwd, Who, NewGame);
+        {ok, {please_wait, NewGame}} ->
+            do_wait(Sock, Name, Passwd, Who, NewGame);
+        _ -> ok
+    end.
+
+do_move(Sock, Name, Passwd, Who, Game) ->
+    ok.
 
 
 send_cmd(Sock, Cmd) ->
@@ -79,7 +98,7 @@ mk_ready() ->
     "{i_want_to_play}.".
 
 mk_start(Who) ->
-    io_lib:format("{login,\"~p\"}.", [Who]).
+    io_lib:format("{login,~p}.", [Who]).
 
 
 
