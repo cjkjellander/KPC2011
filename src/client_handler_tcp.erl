@@ -88,15 +88,12 @@ handle_response({redirect, {game_over, G, Win}}, Socket, State) ->
 handle_response({redirect, {game_crash, G}}, Socket, State) ->
     send_msg(Socket, term_to_string({error, {game_crash, G}})),
     State#state{game_server=undefined};
-
+handle_response(good_bye, Socket, _State) ->
+    send_msg(Socket, "good_bye"),
+    gen_tcp:close(Socket),
+    exit(normal);
 handle_response(Response, Socket, State) ->
     send_msg(Socket, term_to_string(Response)),
-    if Response =:= good_bye ->
-            gen_tcp:close(Socket),
-            exit(normal);
-       true ->
-            ok
-    end,
     State.
 
 
