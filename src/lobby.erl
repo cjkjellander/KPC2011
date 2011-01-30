@@ -130,7 +130,6 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
             G = #duel{game_id = GameID,
                       game_server = GameServer,
                       game_data = Game},
-            %% FIXME: The lobby wants to know who's black and who's white.
             NewLS = LS#lobby_state{ready = Ps, games = [G | Gs]},
             gen_server:cast(OtherPlayer,
                             {redirect, {lets_play, GameServer, GameID}}),
