@@ -67,10 +67,12 @@ do_wait(Sock, Name, Passwd, Who, _Game) ->
     end.
 
 do_move(Sock, Name, Passwd, Who, Game) ->
+    reversi:draw_board(Game),
     M = reversi:check_avail(Game, Who),
     {X, Y, _} = reversi:rand_pick(M),
     Ready = mk_move(Who, X, Y),
     Reply = send_cmd(Sock, Ready),
+    io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
         {ok, {your_move, NewGame}} ->
             do_move(Sock, Name, Passwd, Who, NewGame);
