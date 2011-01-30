@@ -63,6 +63,8 @@ do_wait(Sock, Name, Passwd, Who, _Game) ->
             do_move(Sock, Name, Passwd, Who, NewGame);
         {ok, {please_wait, NewGame}} ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
+        {ok, {game_over, _NewGame, _Win}} ->
+            ready(Sock, Name, Passwd);
         _ -> ok
     end.
 
