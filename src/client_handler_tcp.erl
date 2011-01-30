@@ -50,7 +50,8 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     {ok, Socket} = gen_tcp:accept(LSock),
     {ok, {IP, _Port}} = inet:sockname(Socket),
     %% FIXME: Do stuff with the IP-address.
-    client_handler_sup:start_client_handler(?MODULE, [LSock]),
+    {ok, NewCH} = client_handler_sup:start_client_handler(?MODULE, [LSock]),
+    gen_tcp:controlling_process(LSock, NewCH),
     {noreply, State#state{ip = IP, socket=Socket}}.
 
 terminate(_Reason, _State) ->
@@ -90,13 +91,12 @@ handle_response({redirect, {game_crash, G}}, Socket, State) ->
 
 handle_response(Response, Socket, State) ->
     send_msg(Socket, term_to_string(Response)),
-
     if Response =:= good_bye ->
-            gen_tcp:close(Socket);
+            gen_tcp:close(Socket),
+            exit(normal);
        true ->
             ok
     end,
-
     State.
 
 
