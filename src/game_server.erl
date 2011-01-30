@@ -73,20 +73,17 @@ play(_, _Pid, GS) ->
 which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {your_move, Game}),
+            gen_server:cast(that_guy(GS, Who), {your_move, Game}),
             {reply, {ok, {please_wait, Game}}, play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
-            gen_server:cast(that_guy(GS, Who),
-                            {please_wait, Game}),
+            gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
             {reply, {ok, {your_move, NewGame#game.board}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
             lobby:game_over(Game, this_guy(Winner)),
-            gen_server:cast(that_guy(GS, Who),
-                            {redirect, {game_over, Game, Winner}}),
-            {stop, normal, {redirect, {game_over, Game, Winner}},
-             GS#game_state{game=Game}}
+            GameOver = {redirect, {game_over, Game, Winner}},
+            gen_server:cast(that_guy(GS, Who), GameOver),
+            {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
