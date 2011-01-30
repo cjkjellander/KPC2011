@@ -65,7 +65,7 @@ do_wait(Sock, Name, Passwd, Who, _Game) ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
         {ok, {game_over, _NewGame, _Win}} ->
             ready(Sock, Name, Passwd);
-        Error -> io:format("do_wait ~p~n", [Error])
+        Error -> io:format("do_wait ~p~n-~n~p~n", [Error, Reply])
     end.
 
 do_move(Sock, Name, Passwd, Who, Game) ->
@@ -82,7 +82,7 @@ do_move(Sock, Name, Passwd, Who, Game) ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
         {ok, {game_over, _NewGame, _Win}} ->
             ready(Sock, Name, Passwd);
-        Error -> io:format("do_move ~p~n", [Error])
+        Error -> io:format("do_move ~p~n-~n~p~n", [Error, Reply])
     end.
 
 
