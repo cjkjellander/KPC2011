@@ -50,6 +50,7 @@ setup(_, _Pid, GS) ->
 
 black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
     gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game{moves=[]}}}),
+    timer:sleep(500),
     {reply, {ok, {please_wait, Game#game{moves=[]}}},
      play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
@@ -57,6 +58,7 @@ black_ready(_, _, GS) ->
 
 white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
     gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game{moves=[]}}}),
+    timer:sleep(500),
     {reply, {ok, {your_move, Game#game{moves=[]}}},
      play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
@@ -88,12 +90,15 @@ which_state(Who, Game, _Pid, GS) ->
         {switch, NewGame, _} ->
             gen_server:cast(that_guy(GS, Who),
                             {ok, {please_wait, NewGame#game{moves=[]}}}),
+            timer:sleep(500),
             {reply, {ok, {your_move, NewGame#game{moves=[]}}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
             lobby:game_over(Game, Winner),
             GameOver = {redirect, {game_over, Game#game{moves=[]}, Winner}},
+            timer:sleep(500),
             gen_server:cast(that_guy(GS, Who), GameOver),
+            timer:sleep(500),
             {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
