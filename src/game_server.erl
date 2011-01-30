@@ -49,13 +49,13 @@ setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
 black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {your_move, Game}),
+    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game}}),
     {reply, {ok, {please_wait, Game}}, play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
 white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
-    gen_server:cast(that_guy(GS, Who), {please_wait, Game}),
+    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game}}),
     {reply, {ok, {your_move, Game}}, play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
