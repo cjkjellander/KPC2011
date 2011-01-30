@@ -28,12 +28,6 @@
           games = []
         }).
 
--record(player,
-        {
-          name,
-          pid
-        }).
-
 %% An ongoing game.
 -record(duel,
         {
@@ -60,9 +54,6 @@ game_over(Winner) ->
 game_crash(Reason, Game, Black, White) ->
     gen_server:cast(reversi_lobby,
                     {game_server_crash, Reason, Game, Black, White}).
-
-%% enter(Name) ->
-%%     gen_server:call(reversi_lobby, {enter, Name}).
 
 
 %%% gen_server callbacks
