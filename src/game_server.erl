@@ -91,17 +91,19 @@ which_state(Who, Game, _Pid, GS) ->
             {reply, {ok, {your_move, NewGame#game{moves=[]}}}, play,
              GS#game_state{game=NewGame}};
         {done, Game, Winner} ->
-            lobby:game_over(Game, this_guy(GS, Winner)),
-            GameOver = {redirect, {game_over, Game, Winner}},
+            lobby:game_over(Game, Winner),
+            GameOver = {redirect, {game_over, Game#game{moves=[]}, Winner}},
             gen_server:cast(that_guy(GS, Who), GameOver),
             {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
-this_guy(#game_state{white=W}, ?W) -> W.
+this_guy(#game_state{white=W}, ?W) -> W;
+this_guy(_, ?E)                    -> undefined.
 
 that_guy(#game_state{black=B}, ?W) -> B;
-that_guy(#game_state{white=W}, ?B) -> W.
+that_guy(#game_state{white=W}, ?B) -> W;
+that_guy(_, ?E)                    -> undefined.
 
 
 p2a(?B) -> black;
