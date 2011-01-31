@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% File    : rand_bot.erl
+%%% File    : bot_base.erl
 %%% Author  : Thomas Järvstrand <>
 %%% Description : 
 %%%
 %%% Created : 30 Jan 2011 by Thomas Järvstrand <>
 %%%-------------------------------------------------------------------
--module(rand_bot).
+-module(bot_base).
 
 %% API
 -export([ start_link/0
