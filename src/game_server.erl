@@ -54,6 +54,7 @@ setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
 black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    timer:sleep(500),
     gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game{moves=[]}}}),
     timer:sleep(500),
     {reply, {ok, {please_wait, Game#game{moves=[]}}},
@@ -62,6 +63,7 @@ black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
 white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    timer:sleep(500),
     gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game{moves=[]}}}),
     timer:sleep(500),
     {reply, {ok, {your_move, Game#game{moves=[]}}},

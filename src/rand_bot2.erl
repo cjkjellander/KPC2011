@@ -52,7 +52,7 @@ start_game(Sock, Name, Passwd, Who, Game) ->
             do_move(Sock, Name, Passwd, Who, NewGame);
         {ok, {please_wait, NewGame}} ->
             do_wait(Sock, Name, Passwd, Who, NewGame);
-        Error -> io:format("start_game ~p~n", [Error])
+        Error -> io:format("start_game ~p~n-~n~p~n", [Error, Reply])
     end.
 
 do_wait(Sock, Name, Passwd, Who, _Game) ->
