@@ -2,6 +2,8 @@
 -export([init/1, content_types_provided/2,
          to_json/2]).
 
+-include("rest.hrl").
+-include_lib("reversi/include/reversi.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
 
 init([]) -> {ok, undefined}.

@@ -5,7 +5,8 @@
          resource_exists/2,
          to_json/2]).
 
--include("include/reversi.hrl").
+-include("rest.hrl").
+-include_lib("reversi/include/reversi.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
 
 uri(BotName) when is_list(BotName) ->
