@@ -26,7 +26,9 @@
                   , extra = []
              }).
 
--record(player, { pid }).
+-record(player, { pid
+                , extra = []
+                }).
 
 -record(duel, { game_id
               , game_server
