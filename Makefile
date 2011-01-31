@@ -18,7 +18,7 @@ deps:
 clean:
 	@./rebar clean
 
-distclean: clean
+distclean: clean releaseclean
 	@./rebar delete-deps
 
 # docs:
