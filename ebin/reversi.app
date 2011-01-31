@@ -11,6 +11,7 @@
     game_server_sup,
     gen_client_handler,
     lobby,
+    lobby_db,
     rand_bot,
     rand_bot2,
     rand_bot_sup,

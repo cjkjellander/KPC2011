@@ -26,6 +26,15 @@
                   , extra = []
              }).
 
+-record(player, { pid }).
+
+-record(duel, { game_id
+              , game_server
+              , game_data
+              , black
+              , white
+              }).
+
 -define(B, 0).
 -define(W, 1).
 -define(E, -1).
