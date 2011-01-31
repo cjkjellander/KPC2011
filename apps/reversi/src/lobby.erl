@@ -9,7 +9,13 @@
          , client_command/1
          , game_over/2
          , game_crash/4
-         , get_game/1
+        ]).
+
+%% Info API
+
+-export([
+         get_game/1,
+         list_games/0
         ]).
 
 %% gen_server callbacks
@@ -59,6 +65,9 @@ game_crash(Reason, Game, Black, White) ->
 get_game(GameId) ->
     gen_server:call(reversi_lobby, {get_game, GameId}).
 
+list_games() ->
+    gen_server:call(reversi_lobby, {list_games}).
+
 %%% gen_server callbacks
 
 init(_Args) ->
@@ -74,6 +83,11 @@ handle_call({get_game, GameId}, _From, #lobby_state{games=Games}=LS) ->
         false ->
             {reply, rev_game_db:get_game(GameId), LS}
     end;
+
+handle_call({list_games}, _From, #lobby_state{games = Games} = LS) ->
+    Current = [Id || #duel{game_id = Id} <- Games],
+    {ok, Previous} = rev_game_db:list_games(),
+    {reply, {ok, Current++Previous}, LS};
 
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
@@ -158,9 +172,6 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _},
             NewLS = LS#lobby_state{ready = [From]},
             {reply, {ok, waiting_for_challenge}, NewLS}
     end;
-
-handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
 
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.

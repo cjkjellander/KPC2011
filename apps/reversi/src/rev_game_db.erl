@@ -18,7 +18,8 @@
         , new_game/0
         , new_game/2
         , update_game/1
-        , get_game/1]).
+        , get_game/1
+        , list_games/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -53,6 +54,9 @@ new_game(Black, White) ->
 
 update_game(#game{} = Game) ->
     gen_server:call(?SERVER, {update_game, Game}).
+
+list_games() ->
+    gen_server:call(?SERVER, {list_games}).
 
 get_game(Id) when is_integer(Id) ->
     gen_server:call(?SERVER, {get_game, Id}).
@@ -94,6 +98,8 @@ handle_call({new_game, Black, White}, _From, #state{next_id = NextId} = State) -
 handle_call({update_game, Game}, _From, State) ->
     write(Game),
     {reply, {ok, Game}, State };
+handle_call({list_games}, _From, State) ->
+    {reply, {ok, mnesia:dirty_all_keys(?TABLE)}, State};
 handle_call({get_game, Id}, _From, State) ->
     try
         Game = read(Id),

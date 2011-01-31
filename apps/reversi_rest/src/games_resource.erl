@@ -13,10 +13,7 @@ content_types_provided(ReqData, State) ->
     {Types, ReqData, State}.
 
 to_json(ReqData, State) ->
-    %% missing hostname!
-    Path = wrq:path(ReqData),
-    %% Games = lobby:client_command({list_games}),
-    Games = [3,5,6,7,8],
+    {ok, Games} = lobby:list_games(),
     Json =
         {struct,
          [{"games",
@@ -24,7 +21,7 @@ to_json(ReqData, State) ->
             [{"link",
               {struct,
                [{"rel", <<"self">>},
-                {"href", list_to_binary(Path)}
+                {"href", <<"/games">>}
                ]}}
             ] ++
             [{"game",
@@ -33,8 +30,7 @@ to_json(ReqData, State) ->
                 {"link",
                  {struct,
                   [{"rel", <<"self">>},
-                   {"href", list_to_binary(
-                              io_lib:format("~s~w", [Path, Id])) }
+                   {"href", game_resource:uri(Id)}
                   ]}}
                ]}}
              || Id <- Games
