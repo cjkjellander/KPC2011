@@ -39,8 +39,8 @@ start_link(N,BCookie,WCookie) ->
     gen_fsm:start_link(?MODULE, {N,BCookie,WCookie}, []).
 
 init({N,BCookie,WCookie}) ->
-    {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G
+    {ok, G} = rev_game_db:get_game(N),
+    GS = #game_state{  game=G
                      , black=#who{cookie=BCookie}
                      , white=#who{cookie=WCookie}},
     {ok, setup, GS}.
