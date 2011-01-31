@@ -125,7 +125,7 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
             {reply, Error, State}
     end;
 
-handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{players = Players} = State) ->
+handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
     case lobby_db:find_ready_player() of
         [OtherPlayer] ->
             %% Opponent found, set up a new game!
