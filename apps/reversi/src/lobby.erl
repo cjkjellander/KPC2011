@@ -9,7 +9,13 @@
          , client_command/1
          , game_over/2
          , game_crash/4
-         , get_game/1
+        ]).
+
+%% Info API
+
+-export([
+         get_game/1,
+         list_games/0
         ]).
 
 %% gen_server callbacks
@@ -46,6 +52,9 @@ game_crash(Reason, Game, Black, White) ->
 get_game(GameId) ->
     gen_server:call(reversi_lobby, {get_game, GameId}).
 
+list_games() ->
+    gen_server:call(reversi_lobby, {list_games}).
+
 %%% gen_server callbacks
 
 init(_Args) ->
@@ -65,6 +74,11 @@ handle_call({get_game, GameID}, _From, State) ->
     catch
         _:_ -> {reply, {error, no_such_game}, State}
     end;
+
+%handle_call({list_games}, _From, #lobby_state{games = Games} = LS) ->
+%    Current = [Id || #duel{game_id = Id} <- Games],
+%    {ok, Previous} = rev_game_db:list_games(),
+%    {reply, {ok, Current++Previous}, LS};
 
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
