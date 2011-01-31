@@ -149,3 +149,7 @@ handle_client_command(_Command, _From, LS) ->
 
 handle_client_game_command(#duel{}, _From, _Command, LS) ->
     {reply, {error, unknown_game_command}, LS}.
+
+cookie() ->
+    <<A:64>> = crypto:rand_bytes(8),
+    A.
