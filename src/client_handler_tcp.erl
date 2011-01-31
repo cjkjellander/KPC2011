@@ -13,6 +13,13 @@
 
 -define(DEFAULT_PORT, 7676).
 
+-define(SOCKET_OPTIONS,
+        [
+         {active, true},
+         {reuseaddr, true},
+         {nodelay, true}
+        ]).
+
 -record(state, {lsock
                 , ip
                 , game_server
@@ -27,7 +34,7 @@ init([]) ->
                {ok, P} -> P;
                undefined -> ?DEFAULT_PORT
            end,
-    {ok, LSock} = gen_tcp:listen(Port, [{active, true}, {reuseaddr, true}]),
+    {ok, LSock} = gen_tcp:listen(Port, ?SOCKET_OPTIONS),
     init([LSock]);
 init([LSock]) ->
     {ok, #state{lsock = LSock}, 0}.
