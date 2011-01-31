@@ -14,7 +14,8 @@
         , list_games/0
         , delete_game/1
         , delete_game_server/1
-        , add_player/1
+        , add_player/2
+        , read_player/1
         , delete_player/1
         , add_ready_player/1
         , find_ready_player/0
@@ -85,11 +86,14 @@ list_games() ->
             end,
     transaction(Games).
 
-add_player(Pid) ->
+add_player(Pid, Name) ->
     Write = fun() ->
-                    write_t(?PLAYERS, #player{ pid = Pid })
+                    write_t(?PLAYERS, #player{ pid = Pid, name = Name })
             end,
     transaction(Write).
+
+read_player(Id) ->
+    read_d(?PLAYERS, Id).
 
 delete_player(Pid) ->
     Delete = fun() ->

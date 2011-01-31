@@ -27,6 +27,7 @@
              }).
 
 -record(player, { pid
+                , name
                 , extra = []
                 }).
 
