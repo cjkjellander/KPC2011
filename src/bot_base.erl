@@ -61,10 +61,21 @@ init() ->
     init(#state{}).
 
 init(#state{} = State) ->
+    %% try
+    %%     R = case connect() of
+    %%             {ok, LSock} ->
+    %%                 connected(State#state{lsock = LSock});
+    %%             Err -> Err
+    %%         end,
+    %%     io:format("Res:~p~n", [R])
+    %% catch
+    %%     _:_ = E ->
+    %%         io:format("Err: ~p~n", [E])
+    %% end.
     case connect() of
-	{ok, LSock} ->
+        {ok, LSock} ->
             connected(State#state{lsock = LSock});
-	Err -> Err
+        Err -> Err
     end.
 
 init(Host, Name, Pass, CalcMod) ->
@@ -91,8 +102,8 @@ logged_in(#state{game = undefined, lsock = LSock} = State) ->
     end.
 
 %% Opponent found
-game_created(#state{lsock = LSock, game = Game, color = Color} = State) ->
-    case game_log_in(LSock, Color) of
+game_created(#state{lsock = LSock, cookie = Cookie, color = Color} = State) ->
+    case game_log_in(LSock, Cookie, Color) of
         {please_wait, Game} -> awaiting_turn(State#state{game = Game});
         {your_move, Game}   -> making_move(State#state{game = Game});
         Err                 -> Err
@@ -107,10 +118,11 @@ awaiting_turn(State) ->
         Err -> Err
     end.
 
-making_move(#state{lsock = LSock, game = Game, color = Color, calc_mod = Mod} = State) ->
+making_move(#state{lsock = LSock, cookie = Cookie, game = Game, color = Color, calc_mod = Mod} = State) ->
+    io:format("~p(~p) making move~n", [State#state.name, self()]),
     Moves = reversi:check_avail(Game, Color),
     {X, Y, _GS} = Mod:calc_move(Game, Moves, Color),
-    case make_move(LSock, X, Y, Color) of
+    case make_move(LSock, Cookie, X, Y, Color) of
         {please_wait, UpdatedGame}        -> awaiting_turn(State#state{game = UpdatedGame});
         {game_over, UpdatedGame, Winner} ->
             game_over(State#state{game = UpdatedGame, winner = Winner});
@@ -151,8 +163,8 @@ wait_for_game() ->
         Err                                      -> Err
     end.
 
-game_log_in(LSock, Color) ->
-    case do_rpc(LSock, {login, Color}) of
+game_log_in(LSock, Cookie, Color) ->
+    case do_rpc(LSock, {login, Cookie, Color}) of
         {ok, wait_for_other_guy} ->
             case recv() of
                 {ok, {please_wait, _Game} = Res} -> Res;
@@ -164,8 +176,8 @@ game_log_in(LSock, Color) ->
         Err                              -> Err
     end.
 
-make_move(LSock, X, Y, Color) ->
-    case do_rpc(LSock, {move, Color, X, Y}) of
+make_move(LSock, Cookie, X, Y, Color) ->
+    case do_rpc(LSock, {move, Cookie, Color, X, Y}) of
         {ok, {please_wait, _Game} = Res}        -> Res;
         {ok, {game_over, _Game, _Winner} = Res} -> Res;
         Err                                     -> Err
