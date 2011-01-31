@@ -1,5 +1,6 @@
 -module(reversi).
 -export([new_game/1
+         , new_game/3
          , draw_board/1
          , piece/3
          , set_piece/4
@@ -18,6 +19,11 @@
 
 new_game(N) ->
     {ok, #game{id=N}}.
+
+new_game(N, Black, White) ->
+    {ok, #game{id=N,
+               player_b = Black,
+               player_w = White}}.
 
 draw_board(#game{} = G) ->
     io:format(" +--------+~n"),

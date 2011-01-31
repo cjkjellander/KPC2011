@@ -1,0 +1,18 @@
+%%-*- mode: erlang -*-
+{application, reversi_rest,
+ [
+  {description, "reversi_rest"},
+  {vsn, "0.1"},
+  {modules, []},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  crypto,
+                  mochiweb,
+                  webmachine,
+                  reversi
+                 ]},
+  {mod, { reversi_rest_app, []}},
+  {env, []}
+ ]}.

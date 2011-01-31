@@ -16,6 +16,7 @@
         , start_link/0
         , stop/0
         , new_game/0
+        , new_game/2
         , update_game/1
         , get_game/1]).
 
@@ -45,7 +46,10 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 new_game() ->
-    gen_server:call(?SERVER, new_game).
+    gen_server:call(?SERVER, {new_game, undefined, undefined}).
+
+new_game(Black, White) ->
+    gen_server:call(?SERVER, {new_game, Black, White}).
 
 update_game(#game{} = Game) ->
     gen_server:call(?SERVER, {update_game, Game}).
@@ -83,8 +87,8 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call(new_game, _From, #state{next_id = NextId} = State) ->
-    {ok, Game} = reversi:new_game(NextId),
+handle_call({new_game, Black, White}, _From, #state{next_id = NextId} = State) ->
+    {ok, Game} = reversi:new_game(NextId, Black, White),
     write(Game),
     {reply, {ok, Game}, State#state{next_id = NextId + 1}};
 handle_call({update_game, Game}, _From, State) ->

@@ -1,14 +1,25 @@
-all: beams
+ERL ?= erl
+APP := reversi
 
-beams:
-	erl -make
+.PHONY: deps
+
+all: deps
+	@./rebar compile
+
+release: all
+	@./rebar generate
+
+releaseclean:
+	rm -rf rel/reversi
+
+deps:
+	@./rebar get-deps
 
 clean:
-	rm -rf ./apps/reversi/ebin/*.beam
+	@./rebar clean
 
-distclean: clean
-	rm -f *.boot
-	rm -f *.script
+distclean: clean releaseclean
+	@./rebar delete-deps
 
-bootscripts: beams
-	erl -pa ./apps/reversi/ebin/ -noshell -eval 'systools:make_script("reversi-0.1", [local]).' -s init stop
+# docs:
+# 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'

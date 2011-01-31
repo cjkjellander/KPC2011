@@ -54,12 +54,12 @@ init(_Args) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_call({get_game, GameId}, _From, State) ->
+handle_call({get_game, GameID}, _From, State) ->
     try
         Game =
             case lobby_db:read_game(GameID) of
                 #duel{game_server=GameServer} -> game_server:status(GameServer);
-                false                         -> rev_game_db:get_game(GameId)
+                false                         -> rev_game_db:get_game(GameID)
             end,
         {reply, Game, State}
     catch
@@ -102,9 +102,9 @@ handle_client_command({{game, GameID, Command}, _IP}, From, State) ->
 
 handle_client_command({{login, User, Passwd}, IP}, From, State) ->
     check_inputs,
-    case rev_bot:login(Bot, Passwd, IP) of
+    case rev_bot:login(User, Passwd, IP) of
         {ok, _} ->
-            ok = lobby_db:add_player(From),
+            ok = lobby_db:add_player(User, From),
             {reply, {ok, welcome}, State};
         Error   ->
             {reply, Error, State}
@@ -117,22 +117,19 @@ handle_client_command({{logout}, _IP}, {From,_}, State) ->
 handle_client_command({{register, User, Player, Desc, Email}, IP},
                       From, State) ->
     check_inputs,
-    case rev_bot:register(Bot, Player, Desc, Email, IP, []) of
+    case rev_bot:register(User, Player, Desc, Email, IP, []) of
         {ok, PW} ->
-            lobby_db:add_player(From),
+            lobby_db:add_player(User, From),
             {reply, {ok, {password, PW}}, State};
         Error    ->
             {reply, Error, State}
     end;
 
-handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{players = Ps} = State) ->
+handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{players = Players} = State) ->
     case lobby_db:find_ready_player() of
         [OtherPlayer] ->
             %% Opponent found, set up a new game!
-            {_NameB, BotB} = lists:keyfind(OtherPlayer, 1, Ps),
-            {_NameW, BotW} = lists:keyfind(From, 1, Ps),
-            {ok, Game} = (rev_game_db:new_game())#game{player_b = BotB,
-                                                       player_w = BotW},
+            {ok, Game} = rev_game_db:new_game(),
             GameID = Game#game.id,
             B = cookie(),
             W = cookie(),
