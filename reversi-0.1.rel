@@ -1,0 +1,8 @@
+{release, {"Reversi", "0.1"}, {erts, "5.7.5"},
+ [
+  {kernel, "2.13.5"},
+  {stdlib, "1.16.5"},
+  {mnesia, "4.4.13"},
+  {crypto, "1.6.4"},
+  {reversi, "0.1"}
+ ]}.
