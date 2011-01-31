@@ -3,3 +3,4 @@
 Mnesia.*
 *.boot
 *.script
+erl_crash.dump
