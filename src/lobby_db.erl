@@ -40,9 +40,9 @@
 %% API
 %%====================================================================
 create_tables() ->
-    create_player_table,
-    create_ready_table,
-    create_duel_table.
+    create_player_table(),
+    create_ready_table(),
+    create_duel_table().
 
 create_player_table() ->
     {atomic, ok} = mnesia:create_table(?PLAYERS, ?PLAYER_ATTR).
