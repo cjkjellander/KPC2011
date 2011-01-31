@@ -97,7 +97,7 @@ wait_reply(_Timeout) ->
     receive
 	Reply ->
 	    {value, Reply}
-    after 1000 ->
+    after 10000 ->
 	    timeout
     end.
 
