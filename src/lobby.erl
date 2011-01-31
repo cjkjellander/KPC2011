@@ -98,7 +98,7 @@ handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games =
             {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({{login, Bot, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{login, Bot, Passwd}, IP}, {From, _}, #lobby_state{players = Ps} = LS) ->
     check_inputs,
     case rev_bot:login(Bot, Passwd, IP) of
         {ok, _} ->
@@ -122,14 +122,13 @@ handle_client_command({{register, Bot, Player, Desc, Email}, IP},
     end;
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _},
-                      #lobby_state{players = Ps, ready = RPs, games = Gs} = LS) ->
+                      #lobby_state{players = Players, ready = RPs, games = Gs} = LS) ->
     case RPs of
         [OtherPlayer | Ps] ->
             %% Opponent found, set up a new game!
-            {_NameB, BotB} = lists:keyfind(OtherPlayer, 1, Ps),
-            {_NameW, BotW} = lists:keyfind(From, 1, Ps),
-            {ok, Game} = (rev_game_db:new_game())#game{player_b = BotB,
-                                                       player_w = BotW},
+            {_NameB, BotB} = lists:keyfind(OtherPlayer, 1, Players),
+            {_NameW, BotW} = lists:keyfind(From, 1, Players),
+            {ok, Game} = rev_game_db:new_game(BotB, BotW),
             GameID = Game#game.id,
             B = cookie(),
             W = cookie(),
