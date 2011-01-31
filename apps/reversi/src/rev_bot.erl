@@ -19,6 +19,7 @@
         , gen_passwd/0
         , gen_hash/2
         , check_passwd/2
+        , list_bots/0
         ]).
 
 -define(SERVER, ?MODULE).
@@ -85,6 +86,9 @@ login(Name, Password, LastIP) ->
          [Bot] -> check_bot(Bot, Password, LastIP);
          []    -> {error, bad_login}
      end.
+
+list_bots() ->
+    mnesia:dirty_all_keys(?TABLE).
 
 check_bot(#rev_bot{password=Hash} = Bot, Password, LastIP) ->
     case check_passwd(Hash, Password) of

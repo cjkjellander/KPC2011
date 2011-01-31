@@ -152,6 +152,14 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
 handle_client_command({{list_games}, _IP}, _From, State) ->
     Games = lobby_db:list_games(),
     {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, State};
+handle_client_command({{list_bots}, _IP}, _From, State) ->
+    {reply, {ok, rev_bot:list_bots()}, State};
+handle_client_command({{bot_rank, BotName}, _IP}, _From, State) ->
+    Reply = case rev_bot:try_read(BotName) of
+                []                   -> {error, does_not_exist};
+                [#rev_bot{rank = R}] -> {ok, R}
+            end,
+    {reply, Reply, State};
 
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
