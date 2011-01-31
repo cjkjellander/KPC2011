@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/1
+-export([start_link/3
         ]).
 
 %% External Interface
@@ -10,6 +10,7 @@
          , move/4
          , status/1
          , opponent/1
+         , client_command/2
         ]).
 
 % Internal Interface
@@ -30,30 +31,43 @@
 
 -include("../include/reversi.hrl").
 
--record(game_state, {game, black, white, lobby}).
+-record(game_state, {game, black, white}).
 
-start_link({N, Lobby}) ->
-    gen_fsm:start_link(?MODULE, {N, Lobby}, []).
+-record(who, {pid, cookie}).
 
-init({N, Lobby}) ->
+start_link(N,BCookie,WCookie) ->
+    gen_fsm:start_link(?MODULE, {N,BCookie,WCookie}, []).
+
+init({N,BCookie,WCookie}) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G, lobby=Lobby},
+    GS = #game_state{game=G
+                     , black=#who{cookie=BCookie}
+                     , white=#who{cookie=WCookie}},
     {ok, setup, GS}.
 
+
 setup({login, ?B}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, black_ready, GS#game_state{black=Pid}};
+    {reply, {ok, wait_for_other_guy}, black_ready, GS#game_state{black=Pid}};
 setup({login, ?W}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, white_ready, GS#game_state{white=Pid}};
+    {reply, {ok, wait_for_other_guy}, white_ready, GS#game_state{white=Pid}};
 setup(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, setup, GS}.
 
-black_ready({login, ?W}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{white=Pid}};
+black_ready({login, ?W = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    timer:sleep(500),
+    gen_server:cast(that_guy(GS, Who), {ok, {your_move, Game#game{moves=[]}}}),
+    timer:sleep(500),
+    {reply, {ok, {please_wait, Game#game{moves=[]}}},
+     play, GS#game_state{white=Pid}};
 black_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, black_ready, GS}.
 
-white_ready({login, ?B}, {Pid,_}, GS) ->
-    {reply, {ok, logged_in}, play, GS#game_state{black=Pid}};
+white_ready({login, ?B = Who}, {Pid,_}, #game_state{game=Game} = GS) ->
+    timer:sleep(500),
+    gen_server:cast(that_guy(GS, Who), {ok, {please_wait, Game#game{moves=[]}}}),
+    timer:sleep(500),
+    {reply, {ok, {your_move, Game#game{moves=[]}}},
+     play, GS#game_state{black=Pid}};
 white_ready(_, _, GS) ->
     {reply, {error, imsorrydavecantdothat}, white_ready, GS}.
 
@@ -66,32 +80,44 @@ play({move, Who, X, Y}, {Pid,_}, #game_state{game=#game{togo=Who}} = GS) ->
     end;
 play({move, _, _, _}, _, GS) ->
     {reply, {error, notyourturn}, play, GS};
+play({quit, Who}, _Pid, #game_state{game=Game} = GS) ->
+    GameOver = {redirect, {game_over, Game, ?E}},
+    gen_server:cast(that_guy(GS, Who), GameOver),
+    {stop, normal, GameOver, GS#game_state{game=Game}};
 play(_, _Pid, GS) ->
     {reply, {error, imsorrydavecantdothat}, play, GS}.
 
-which_state(Who, Game, _Pid, #game_state{lobby=L} = GS) ->
+which_state(Who, Game, _Pid, GS) ->
     case reversi:move_check(Game) of
         {go, Game, _} ->
+            timer:sleep(500),
             gen_server:cast(that_guy(GS, Who),
-                            {your_move, Game}),
-            {reply, {ok, please_wait}, play, GS#game_state{game=Game}};
+                            {ok, {your_move, Game#game{moves=[]}}}),
+            {reply, {ok, {please_wait, Game#game{moves=[]}}},
+             play, GS#game_state{game=Game}};
         {switch, NewGame, _} ->
+            timer:sleep(500),
             gen_server:cast(that_guy(GS, Who),
-                            {nothing_to_do, Game}),
-            {reply, {your_move, NewGame#game.board}, play,
+                            {ok, {please_wait, NewGame#game{moves=[]}}}),
+            timer:sleep(500),
+            {reply, {ok, {your_move, NewGame#game{moves=[]}}}, play,
              GS#game_state{game=NewGame}};
-        {done, G, Winner} ->
-            gen_server:cast(L, {game_over, G, Winner}),
-            gen_server:cast(that_guy(GS, Who),
-                            {game_over, G, Winner}),
-            {stop, {game_over, G, Winner}, GS#game_state{game=G}}
+        {done, Game, Winner} ->
+            lobby:game_over(Game, Winner),
+            GameOver = {redirect, {game_over, Game#game{moves=[]}, Winner}},
+            timer:sleep(500),
+            gen_server:cast(that_guy(GS, Who), GameOver),
+            timer:sleep(500),
+            {stop, normal, GameOver, GS#game_state{game=Game}}
     end.
 
 this_guy(#game_state{black=B}, ?B) -> B;
-this_guy(#game_state{white=W}, ?W) -> W.
+this_guy(#game_state{white=W}, ?W) -> W;
+this_guy(_, ?E)                    -> undefined.
 
 that_guy(#game_state{black=B}, ?W) -> B;
-that_guy(#game_state{white=W}, ?B) -> W.
+that_guy(#game_state{white=W}, ?B) -> W;
+that_guy(_, ?E)                    -> undefined.
 
 
 p2a(?B) -> black;
@@ -109,17 +135,26 @@ handle_event(_Event, StateName, StateData) ->
 handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-handle_sync_event(game_status, _From, StateName, GS) ->
+handle_sync_event({availabe_moves, Game, Who}, _From, StateName, GS) ->
+    {reply, {ok, reversi:check_avail(Game, Who)}, StateName, GS};
+handle_sync_event({game_status}, _From, StateName, GS) ->
     {reply, {ok, GS#game_state.game}, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
+handle_sync_event({board}, _From, StateName, #game_state{game = G} = GS) ->
+    {reply, {ok, reversi:game2lists(G)}, StateName, GS};
+handle_sync_event({opponent}, From, StateName, #game_state{black = From, white = Opponent} = GS) ->
     {reply, Opponent, StateName, GS};
-handle_sync_event(opponent, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
+handle_sync_event({opponent}, From, StateName, #game_state{black = Opponent, white = From} = GS) ->
     {reply, Opponent, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-terminate(Reason, _, #game_state{lobby=L} = GS) ->
-    gen_server:cast(L, {crash, Reason, GS}).
+
+terminate(normal, _, #game_state{}) ->
+    ok;
+terminate(Reason, _, #game_state{game = Game, black = B, white = W}) ->
+    gen_server:cast(B, {redirect, {game_crash, Game}}),
+    gen_server:cast(W, {redirect, {game_crash, Game}}),
+    lobby:game_crash(Reason, Game, B, W).
 
 
 %% Interface functions
@@ -131,7 +166,16 @@ move(GameServer, Who, X, Y) ->
     gen_fsm:sync_send_event(GameServer, {move, Who, X, Y}).
 
 status(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, game_status).
+    gen_fsm:sync_send_all_state_event(GameServer, {game_status}).
 
 opponent(GameServer) ->
-    gen_fsm:sync_send_all_state_event(GameServer, opponent).
+    gen_fsm:sync_send_all_state_event(GameServer, {opponent}).
+
+client_command(GameServer, {game_status} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {opponent} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, {board} = Request) ->
+    gen_fsm:sync_send_all_state_event(GameServer, Request);
+client_command(GameServer, Request) ->
+    gen_fsm:sync_send_event(GameServer, Request).

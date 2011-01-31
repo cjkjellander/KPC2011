@@ -18,16 +18,14 @@ init(_Args) ->
     {ok,
      {
        {one_for_one, 1, 5000},
-       []
+       [client_handler_child_spec(client_handler_tcp, [])]
      }}.
 
 
 %%% API
 
 start_link() ->
-    supervisor:start_link({local, reversi_client_handler_supervisor},
-                          ?MODULE,
-                          []).
+    supervisor:start_link({local, reversi_client_handler_supervisor}, ?MODULE, []).
 
 start_client_handler(Module) ->
     start_client_handler(Module, []).
@@ -41,8 +39,8 @@ start_client_handler(Module, Args) ->
 
 client_handler_child_spec(Module, Args) ->
     {
-      client_handler,
-      {Module, start_link, Args},
+      {client_handler, make_ref()},
+      {Module, start_link, [Args]},
       temporary,
       5000,
       worker,

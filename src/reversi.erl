@@ -7,6 +7,7 @@
          , score/1
          , check_avail/2
          , move_check/1
+         , rand_pick/1
          , winner/1
          , pname/1
          , rand_play/1
@@ -22,7 +23,9 @@ draw_board(#game{} = G) ->
     io:format(" +--------+~n"),
     draw_lines(G, 0),
     io:format(" +--------+~n"
-              "  ABCDEFGH~n").
+              "  ABCDEFGH~n");
+draw_board(Board) ->
+    draw_board(#game{board = Board}).
 
 draw_lines(_, 8) -> ok;
 draw_lines(#game{} = G, Y) ->
@@ -67,7 +70,7 @@ bit_set(X, Y) ->
 move(#game{} = G, X, Y, _) when X>7; X<0; Y>7; Y<0 ->
     {error, {illegal_move, G}};
 move(#game{board = B} = G, X, Y, Who) when Who =:= ?B orelse
-                                                       Who =:= ?W ->
+                                           Who =:= ?W ->
     case piece(B, X, Y) of
         ?E -> maybe_move(G, X, Y, Who);
         _  -> {error, {illegal_move, G}}
@@ -144,13 +147,16 @@ count_ones(I, Ones) ->
         0 -> count_ones(I bsr 1, Ones)
     end.
 
+
 check_avail(#game{} = G, Who) ->
     [{X, Y, GN} || X <- [0,1,2,3,4,5,6,7],
                    Y <- [0,1,2,3,4,5,6,7],
                    case move(G, X, Y, Who) of
                        {ok, GN} -> true;
                        GN -> false
-                   end].
+                   end];
+check_avail(Board, Who) ->
+    check_avail(#game{board = Board}, Who).
 
 game2lists(#game{board=Board}) ->
     [ [piece(Board,X,Y) || X <- [0,1,2,3,4,5,6,7]]
@@ -169,9 +175,9 @@ move_check(#game{togo = Who} = G) ->
 winner(#game{board = B}) ->
     {Bl, Wh} = score(B),
     case X=Bl - Wh of
-        X when X>0 -> {?B, Bl, Wh};
-        X when X<0 -> {?W, Bl, Wh};
-        _   -> {?E, Bl, Wh}
+        X when X>0 -> ?B;
+        X when X<0 -> ?W;
+        _          -> ?E
     end.
 
 rand_play(N) ->
