@@ -9,6 +9,7 @@
          , client_command/1
          , game_over/2
          , game_crash/4
+         , get_game/1
         ]).
 
 %% gen_server callbacks
@@ -55,6 +56,8 @@ game_crash(Reason, Game, Black, White) ->
     gen_server:cast(reversi_lobby,
                     {game_server_crash, Reason, Game, Black, White}).
 
+get_game(GameId) ->
+    gen_server:call(reversi_lobby, {get_game, GameId}).
 
 %%% gen_server callbacks
 
@@ -63,6 +66,17 @@ init(_Args) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+handle_call({get_game, GameId}, _From, #lobby_state{games=Games}) ->
+    try
+        case lists:keyfind(GameId, #duel.game_id, Games) of
+            #duel{game_server=GameServer} ->
+                game_server:status(GameServer);
+            false -> rev_game_db:get_game(GameId)
+        end
+    catch
+        _:_ -> {error, no_such_game}
+    end;
 
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
