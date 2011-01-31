@@ -111,10 +111,10 @@ handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, read
     {reply, good_bye, LS#lobby_state{players = lists:keydelete(From, 1, Ps),
                                      ready = lists:delete(From, RPs)}};
 
-handle_client_command({{register, User, Player, Desc, Email}, IP},
+handle_client_command({{register, Bot, Player, Desc, Email}, IP},
                       From, #lobby_state{players = Ps} = LS) ->
     check_inputs,
-    case rev_bot:register(User, Player, Desc, Email, IP, []) of
+    case rev_bot:register(Bot, Player, Desc, Email, IP, []) of
         {ok, PW} ->
             {reply, {ok, {password, PW}}, LS#lobby_state{players = [{From,Bot}| Ps]}};
         Error    ->
