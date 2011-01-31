@@ -19,7 +19,9 @@ login(Sock, Name, Passwd) ->
     Reply = send_cmd(Sock, Login),
     case parse_data(Reply) of
         {ok, welcome} -> ready(Sock, Name, Passwd);
-        Error -> io:format("login ~p~n", [Error])
+        Error -> io:format("login ~p~n", [Error]),
+                 timer:sleep(5000).
+                 login(Sock, Name, Passwd)
     end.
 
 ready(Sock, Name, Passwd) ->
