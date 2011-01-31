@@ -5,10 +5,10 @@
 
 %% API
 -export([
-         start_link/0,
-         client_command/1,
-         game_over/2,
-         game_crash/4
+         start_link/0
+         , client_command/1
+         , game_over/2
+         , game_crash/4
         ]).
 
 %% gen_server callbacks
