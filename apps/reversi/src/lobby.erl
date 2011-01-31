@@ -67,15 +67,12 @@ init(_Args) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_call({get_game, GameId}, _From, #lobby_state{games=Games}) ->
-    try
-        case lists:keyfind(GameId, #duel.game_id, Games) of
-            #duel{game_server=GameServer} ->
-                game_server:status(GameServer);
-            false -> rev_game_db:get_game(GameId)
-        end
-    catch
-        _:_ -> {error, no_such_game}
+handle_call({get_game, GameId}, _From, #lobby_state{games=Games}=LS) ->
+    case lists:keyfind(GameId, #duel.game_id, Games) of
+        #duel{game_server=GameServer} ->
+            {reply, game_server:status(GameServer), LS};
+        false ->
+            {reply, rev_game_db:get_game(GameId), LS}
     end;
 
 handle_call({cmd, Command}, From, State) ->

@@ -95,7 +95,12 @@ handle_call({update_game, Game}, _From, State) ->
     write(Game),
     {reply, {ok, Game}, State };
 handle_call({get_game, Id}, _From, State) ->
-    {reply, {ok, read(Id)}, State};
+    try
+        Game = read(Id),
+        {reply, {ok, Game}, State}
+    catch
+        _:_ -> {reply, {error, no_such_game}, State}
+    end;
 handle_call(stop, _From, State) ->
     {stop, normal, State}.
 
