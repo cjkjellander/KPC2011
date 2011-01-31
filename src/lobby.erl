@@ -98,17 +98,17 @@ handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games =
             {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{login, Bot, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
     check_inputs,
-    case rev_bot:login(User, Passwd, IP) of
+    case rev_bot:login(Bot, Passwd, IP) of
         {ok, _} ->
-            {reply, {ok, welcome}, LS#lobby_state{players = [From | Ps]}};
+            {reply, {ok, welcome}, LS#lobby_state{players = [{From, Bot} | Ps]}};
         Error   ->
             {reply, Error, LS}
     end;
 
 handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
+    {reply, good_bye, LS#lobby_state{players = lists:keydelete(1, From, Ps),
                                      ready = lists:delete(From, RPs)}};
 
 handle_client_command({{register, User, Player, Desc, Email}, IP},
@@ -116,7 +116,7 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
     check_inputs,
     case rev_bot:register(User, Player, Desc, Email, IP, []) of
         {ok, PW} ->
-            {reply, {ok, {password, PW}}, LS#lobby_state{players = [From | Ps]}};
+            {reply, {ok, {password, PW}}, LS#lobby_state{players = [{From,Bot}| Ps]}};
         Error    ->
             {reply, Error, LS}
     end;
