@@ -108,7 +108,7 @@ handle_client_command({{login, Bot, Passwd}, IP}, From, #lobby_state{players = P
     end;
 
 handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:keydelete(1, From, Ps),
+    {reply, good_bye, LS#lobby_state{players = lists:keydelete(From, 1, Ps),
                                      ready = lists:delete(From, RPs)}};
 
 handle_client_command({{register, User, Player, Desc, Email}, IP},
