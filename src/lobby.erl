@@ -23,21 +23,7 @@
 
 -record(lobby_state,
         {
-          players = [],
-          ready = [],
-          games = []
         }).
-
-%% An ongoing game.
--record(duel,
-        {
-          game_id,
-          game_server,
-          game_data,
-          black,
-          white
-        }).
-
 
 %%% API
 
@@ -69,15 +55,15 @@ handle_call({cmd, Command}, From, State) ->
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
-handle_cast({game_over, #game{id = ID} = G, _Winner}, #lobby_state{games = Gs} = LS) ->
+handle_cast({game_over, #game{id = ID} = G, _Winner}, State) ->
     %% TODO: Update player rankings.
     rev_game_db:update_game(G),
-    NewGs = lists:keydelete(ID, #duel.game_id, Gs),
-    {noreply, LS#lobby_state{games = NewGs}};
-handle_cast({game_crash, GameServer, _Black, _White}, #lobby_state{games = Gs} = LS) ->
+    lobby_db:delete_game(ID),
+    {noreply, State};
+handle_cast({game_crash, GameServer, _Black, _White}, State) ->
     %% TODO: Remove game from database (or store crash info?)
-    NewGs = lists:keydelete(GameServer, #duel.game_server, Gs),
-    {noreply, LS#lobby_state{games = NewGs}};
+    lobby_db:delete_game_server(GameServer),
+    {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -90,40 +76,42 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
-handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games = Gs} = LS) ->
-    case lists:keyfind(GameID, #duel.game_id, Gs) of
-        G = #duel{} ->
-            handle_client_game_command(G, From, Command, LS);
-        false ->
-            {reply, {error, unknown_game}, LS}
+handle_client_command({{game, GameID, Command}, _IP}, From, State) ->
+    case lobby_db:read_game(GameID) of
+        [G = #duel{}] ->
+            handle_client_game_command(G, From, Command, State);
+        [] ->
+            {reply, {error, unknown_game}, State}
     end;
 
-handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{login, User, Passwd}, IP}, From, State) ->
     check_inputs,
     case rev_bot:login(User, Passwd, IP) of
         {ok, _} ->
-            {reply, {ok, welcome}, LS#lobby_state{players = [From | Ps]}};
+            ok = lobby_db:add_player(From),
+            {reply, {ok, welcome}, State};
         Error   ->
-            {reply, Error, LS}
+            {reply, Error, State}
     end;
 
-handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
-                                     ready = lists:delete(From, RPs)}};
+handle_client_command({{logout}, _IP}, {From,_}, State) ->
+    lobby_db:delete_player(From),
+    {reply, good_bye, State};
 
 handle_client_command({{register, User, Player, Desc, Email}, IP},
-                      From, #lobby_state{players = Ps} = LS) ->
+                      From, State) ->
     check_inputs,
     case rev_bot:register(User, Player, Desc, Email, IP, []) of
         {ok, PW} ->
-            {reply, {ok, {password, PW}}, LS#lobby_state{players = [From | Ps]}};
+            lobby_db:add_player(From),
+            {reply, {ok, {password, PW}}, State};
         Error    ->
-            {reply, Error, LS}
+            {reply, Error, State}
     end;
 
-handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = RPs, games = Gs} = LS) ->
-    case RPs of
-        [OtherPlayer | Ps] ->
+handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
+    case lobby_db:find_ready_player() of
+        [OtherPlayer] ->
             %% Opponent found, set up a new game!
             {ok, Game} = rev_game_db:new_game(),
             GameID = Game#game.id,
@@ -131,17 +119,18 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
             G = #duel{game_id = GameID,
                       game_server = GameServer,
                       game_data = Game},
-            NewLS = LS#lobby_state{ready = Ps, games = [G | Gs]},
+            lobby_db:add_game(G),
             gen_server:cast(OtherPlayer,
                             {redirect, {lets_play, GameServer, ?B, GameID}}),
-            {reply, {redirect, {lets_play, GameServer, ?W, GameID}}, NewLS};
+            {reply, {redirect, {lets_play, GameServer, ?W, GameID}}, State};
         [] ->
-            NewLS = LS#lobby_state{ready = [From]},
-            {reply, {ok, waiting_for_challenge}, NewLS}
+            lobby_db:add_ready_player(From),
+            {reply, {ok, waiting_for_challenge}, State}
     end;
 
-handle_client_command({{list_games}, _IP}, _From, #lobby_state{games = Games} = LS) ->
-    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, LS};
+handle_client_command({{list_games}, _IP}, _From, State) ->
+    Games = lobby_db:list_games(),
+    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, State};
 
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
