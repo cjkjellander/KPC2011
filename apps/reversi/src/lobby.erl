@@ -12,10 +12,11 @@
         ]).
 
 %% Info API
-
 -export([
          get_game/1,
-         list_games/0
+         list_games/0,
+         list_bots/0,
+         bot_rank/1
         ]).
 
 %% gen_server callbacks
@@ -55,6 +56,12 @@ get_game(GameId) ->
 list_games() ->
     gen_server:call(reversi_lobby, {list_games}).
 
+list_bots() ->
+    gen_server:call(reversi_lobby, {list_bots}).
+
+bot_rank(BotName) ->
+    gen_server:call(reversi_lobby, {bot_rank, BotName}).
+
 %%% gen_server callbacks
 
 init(_Args) ->
@@ -75,10 +82,21 @@ handle_call({get_game, GameID}, _From, State) ->
         _:_ -> {reply, {error, no_such_game}, State}
     end;
 
-%handle_call({list_games}, _From, #lobby_state{games = Games} = LS) ->
-%    Current = [Id || #duel{game_id = Id} <- Games],
-%    {ok, Previous} = rev_game_db:list_games(),
-%    {reply, {ok, Current++Previous}, LS};
+handle_call({list_games}, _From, State) ->
+    Current = [Id || #duel{game_id = Id} <- lobby_db:list_games()],
+    {ok, Previous} = rev_game_db:list_games(),
+    {reply, {ok, Current++Previous}, State};
+
+handle_call({list_bots}, _From, State) ->
+    {reply, {ok, rev_bot:list_bots()}, State};
+
+%% TODO remove this one and add get_bot instead
+handle_call({bot_rank, BotName}, _From, State) ->
+    Reply = case rev_bot:try_read(BotName) of
+                []                   -> {error, does_not_exist};
+                [#rev_bot{rank = R}] -> {ok, R}
+            end,
+    {reply, Reply, State};
 
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
@@ -162,18 +180,6 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
             lobby_db:add_ready_player(From),
             {reply, {ok, waiting_for_challenge}, State}
     end;
-
-handle_client_command({{list_games}, _IP}, _From, State) ->
-    Games = lobby_db:list_games(),
-    {reply, {ok, [Id || #duel{game_id = Id} <- Games]}, State};
-handle_client_command({{list_bots}, _IP}, _From, State) ->
-    {reply, {ok, rev_bot:list_bots()}, State};
-handle_client_command({{bot_rank, BotName}, _IP}, _From, State) ->
-    Reply = case rev_bot:try_read(BotName) of
-                []                   -> {error, does_not_exist};
-                [#rev_bot{rank = R}] -> {ok, R}
-            end,
-    {reply, Reply, State};
 
 handle_client_command(_Command, _From, LS) ->
     {reply, {error, unknown_command}, LS}.
