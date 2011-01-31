@@ -87,7 +87,7 @@ handle_client_command({{game, GameID, Command}, _IP}, From, State) ->
 
 handle_client_command({{login, User, Passwd}, IP}, From, State) ->
     check_inputs,
-    case rev_bot:login(User, Passwd, IP) of
+    case rev_bot:login(Bot, Passwd, IP) of
         {ok, _} ->
             ok = lobby_db:add_player(From),
             {reply, {ok, welcome}, State};
@@ -102,7 +102,7 @@ handle_client_command({{logout}, _IP}, {From,_}, State) ->
 handle_client_command({{register, User, Player, Desc, Email}, IP},
                       From, State) ->
     check_inputs,
-    case rev_bot:register(User, Player, Desc, Email, IP, []) of
+    case rev_bot:register(Bot, Player, Desc, Email, IP, []) of
         {ok, PW} ->
             lobby_db:add_player(From),
             {reply, {ok, {password, PW}}, State};
@@ -110,11 +110,14 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
             {reply, Error, State}
     end;
 
-handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
+handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{players = Ps} = State) ->
     case lobby_db:find_ready_player() of
         [OtherPlayer] ->
             %% Opponent found, set up a new game!
-            {ok, Game} = rev_game_db:new_game(),
+            {_NameB, BotB} = lists:keyfind(OtherPlayer, 1, Ps),
+            {_NameW, BotW} = lists:keyfind(From, 1, Ps),
+            {ok, Game} = (rev_game_db:new_game())#game{player_b = BotB,
+                                                       player_w = BotW},
             GameID = Game#game.id,
             B = cookie(),
             W = cookie(),
