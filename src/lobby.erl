@@ -28,16 +28,6 @@
           games = []
         }).
 
-%% An ongoing game.
--record(duel,
-        {
-          game_id,
-          game_server,
-          game_data,
-          black,
-          white
-        }).
-
 
 %%% API
 
