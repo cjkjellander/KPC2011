@@ -2,7 +2,7 @@
 {application, reversi_rest,
  [
   {description, "reversi_rest"},
-  {vsn, "1"},
+  {vsn, "0.1"},
   {modules, []},
   {registered, []},
   {applications, [
@@ -10,7 +10,8 @@
                   stdlib,
                   crypto,
                   mochiweb,
-                  webmachine
+                  webmachine,
+                  reversi
                  ]},
   {mod, { reversi_rest_app, []}},
   {env, []}

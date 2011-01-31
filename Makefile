@@ -6,6 +6,12 @@ APP := reversi
 all: deps
 	@./rebar compile
 
+release: all
+	@./rebar generate
+
+releaseclean:
+	rm -rf rel/reversi
+
 deps:
 	@./rebar get-deps
 
@@ -17,5 +23,3 @@ distclean: clean
 
 # docs:
 # 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
-bootscripts: beams
-	erl -pa ./apps/reversi/ebin/ -noshell -eval 'systools:make_script("reversi-0.1", [local]).' -s init stop
