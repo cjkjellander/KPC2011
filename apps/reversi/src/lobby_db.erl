@@ -86,7 +86,7 @@ list_games() ->
             end,
     transaction(Games).
 
-add_player(Pid, Name) ->
+add_player(Pid, Name) when is_pid(Pid) ->
     Write = fun() ->
                     write_t(?PLAYERS, #player{ pid = Pid, name = Name })
             end,

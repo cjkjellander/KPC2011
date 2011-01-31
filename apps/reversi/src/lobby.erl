@@ -132,11 +132,11 @@ handle_client_command({{game, GameID, Command}, _IP}, From, State) ->
             {reply, {error, unknown_game}, State}
     end;
 
-handle_client_command({{login, User, Passwd}, IP}, From, State) ->
+handle_client_command({{login, User, Passwd}, IP}, {From, _}, State) ->
     check_inputs,
     case rev_bot:login(User, Passwd, IP) of
         {ok, _} ->
-            ok = lobby_db:add_player(User, From),
+            ok = lobby_db:add_player(From, User),
             {reply, {ok, welcome}, State};
         Error   ->
             {reply, Error, State}
@@ -147,11 +147,11 @@ handle_client_command({{logout}, _IP}, {From,_}, State) ->
     {reply, good_bye, State};
 
 handle_client_command({{register, User, Player, Desc, Email}, IP},
-                      From, State) ->
+                      {From, _}, State) ->
     check_inputs,
     case rev_bot:register(User, Player, Desc, Email, IP, []) of
         {ok, PW} ->
-            lobby_db:add_player(User, From),
+            lobby_db:add_player(From, User),
             {reply, {ok, {password, PW}}, State};
         Error    ->
             {reply, Error, State}
@@ -159,7 +159,7 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
     case lobby_db:find_ready_player() of
-        [OtherPlayer] ->
+        [#player{pid=OtherPlayer}] ->
             %% Opponent found, set up a new game!
             {ok, Game} = rev_game_db:new_game(),
             GameID = Game#game.id,
