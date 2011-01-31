@@ -2,7 +2,7 @@
 -behavior(gen_fsm).
 -version('0.1').
 
--export([start_link/1
+-export([start_link/3
         ]).
 
 %% External Interface
@@ -33,13 +33,18 @@
 
 -record(game_state, {game, black, white}).
 
-start_link(N) ->
-    gen_fsm:start_link(?MODULE, N, []).
+-record(who, {pid, cookie}).
 
-init(N) ->
+start_link(N,BCookie,WCookie) ->
+    gen_fsm:start_link(?MODULE, {N,BCookie,WCookie}, []).
+
+init({N,BCookie,WCookie}) ->
     {ok, G} = reversi:new_game(N),
-    GS = #game_state{game=G},
+    GS = #game_state{game=G
+                     , black=#who{cookie=BCookie}
+                     , white=#who{cookie=WCookie}},
     {ok, setup, GS}.
+
 
 setup({login, ?B}, {Pid,_}, GS) ->
     {reply, {ok, wait_for_other_guy}, black_ready, GS#game_state{black=Pid}};

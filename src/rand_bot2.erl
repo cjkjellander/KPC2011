@@ -14,7 +14,7 @@ start(Host, Port, Name, Passwd) ->
     end.
 
 login(Sock, Name, Passwd) ->
-    catch wait_reply(1000),
+    catch flush(),
     Login = mk_login(Name, Passwd),
     Reply = send_cmd(Sock, Login),
     case parse_data(Reply) of
@@ -28,7 +28,7 @@ ready(Sock, Name, Passwd) ->
     case parse_data(Reply) of
         {ok, waiting_for_challenge} ->
             wait_for_chal(Sock, Name, Passwd);
-        {ok, {lets_play, Who, Game}} ->
+        {ok, {lets_play, Who, Game, _Cookie}} ->
                 start_game(Sock, Name, Passwd, Who, Game);
         Error -> io:format("ready ~p~n", [Error])
     end.
@@ -37,9 +37,9 @@ wait_for_chal(Sock, Name, Passwd) ->
     {value, {_,_,Reply}} = wait_long_reply(Sock),
     io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
-        {ok, {lets_play, Who, Game}} ->
+        {ok, {lets_play, Who, Game, _Cookie}} ->
             start_game(Sock, Name, Passwd, Who, Game);
-        Error -> io:format("wait_for_chal ~p~n", [Error])
+        Error -> io:format("wait_for_chal ~p~n-~n~p~n", [Error, Reply])
     end.
 
 start_game(Sock, Name, Passwd, Who, Game) ->
@@ -92,6 +92,12 @@ send_cmd(Sock, Cmd) ->
     {value, {_,_,Reply}} = wait_reply(Sock),
     io:format("~s~n", [binary_to_list(Reply)]),
     Reply.
+
+flush() ->
+    receive
+    after 0 ->
+	    ok
+    end.
 
 wait_reply(_Timeout) ->
     receive

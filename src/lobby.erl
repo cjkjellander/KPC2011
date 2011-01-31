@@ -127,14 +127,19 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = R
             %% Opponent found, set up a new game!
             {ok, Game} = rev_game_db:new_game(),
             GameID = Game#game.id,
-            {ok, GameServer} = game_server_sup:start_game_server(GameID),
+            B = cookie(),
+            W = cookie(),
+            {ok, GameServer} = game_server_sup:start_game_server(GameID,B,W),
             G = #duel{game_id = GameID,
                       game_server = GameServer,
-                      game_data = Game},
+                      game_data = Game,
+                      black = B,
+                      white = W
+                     },
             NewLS = LS#lobby_state{ready = Ps, games = [G | Gs]},
             gen_server:cast(OtherPlayer,
-                            {redirect, {lets_play, GameServer, ?B, GameID}}),
-            {reply, {redirect, {lets_play, GameServer, ?W, GameID}}, NewLS};
+                            {redirect, {lets_play, GameServer, ?B, GameID, B}}),
+            {reply, {redirect, {lets_play, GameServer, ?W, GameID, W}}, NewLS};
         [] ->
             NewLS = LS#lobby_state{ready = [From]},
             {reply, {ok, waiting_for_challenge}, NewLS}
