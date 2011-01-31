@@ -42,9 +42,9 @@ upgrade() ->
 %% @doc supervisor callback.
 init([]) ->
     Ip = case os:getenv("WEBMACHINE_IP") of false -> "0.0.0.0"; Any -> Any end,
-    {ok, Dispatch} = file:consult(filename:join(
-                         [filename:dirname(code:which(?MODULE)),
-                          "..", "priv", "dispatch.conf"])),
+    {ok, Dispatch} =
+        file:consult(code:priv_dir(reversi_rest) ++ "/" ++ "dispatch.conf"),
+
     WebConfig = [
                  {ip, Ip},
                  {port, 8000},
