@@ -28,8 +28,8 @@ ready(Sock, Name, Passwd) ->
     case parse_data(Reply) of
         {ok, waiting_for_challenge} ->
             wait_for_chal(Sock, Name, Passwd);
-        {ok, {lets_play, Who, Game, _Cookie}} ->
-                start_game(Sock, Name, Passwd, Who, Game);
+        {ok, {lets_play, Who, Game, Cookie}} ->
+                start_game(Sock, Name, Passwd, Who, Game, Cookie);
         Error -> io:format("ready ~p~n", [Error])
     end.
 
@@ -37,49 +37,49 @@ wait_for_chal(Sock, Name, Passwd) ->
     {value, {_,_,Reply}} = wait_long_reply(Sock),
     io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
-        {ok, {lets_play, Who, Game, _Cookie}} ->
-            start_game(Sock, Name, Passwd, Who, Game);
+        {ok, {lets_play, Who, Game, Cookie}} ->
+            start_game(Sock, Name, Passwd, Who, Game, Cookie);
         Error -> io:format("wait_for_chal ~p~n-~n~p~n", [Error, Reply])
     end.
 
-start_game(Sock, Name, Passwd, Who, Game) ->
-    Ready = mk_start(Who),
+start_game(Sock, Name, Passwd, Who, Game, Cookie) ->
+    Ready = mk_start(Cookie, Who),
     Reply = send_cmd(Sock, Ready),
     case parse_data(Reply) of
         {ok, wait_for_other_guy} ->
-            do_wait(Sock, Name, Passwd, Who, Game);
+            do_wait(Sock, Name, Passwd, Who, Game, Cookie);
         {ok, {your_move, NewGame}} ->
-            do_move(Sock, Name, Passwd, Who, NewGame);
+            do_move(Sock, Name, Passwd, Who, NewGame, Cookie);
         {ok, {please_wait, NewGame}} ->
-            do_wait(Sock, Name, Passwd, Who, NewGame);
+            do_wait(Sock, Name, Passwd, Who, NewGame, Cookie);
         Error -> io:format("start_game ~p~n-~n~p~n", [Error, Reply])
     end.
 
-do_wait(Sock, Name, Passwd, Who, _Game) ->
+do_wait(Sock, Name, Passwd, Who, _Game, Cookie) ->
     {value, {_,_,Reply}} = wait_long_reply(Sock),
     io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
         {ok, {your_move, NewGame}} ->
-            do_move(Sock, Name, Passwd, Who, NewGame);
+            do_move(Sock, Name, Passwd, Who, NewGame, Cookie);
         {ok, {please_wait, NewGame}} ->
-            do_wait(Sock, Name, Passwd, Who, NewGame);
+            do_wait(Sock, Name, Passwd, Who, NewGame, Cookie);
         {ok, {game_over, _NewGame, _Win}} ->
             ready(Sock, Name, Passwd);
         Error -> io:format("do_wait ~p~n-~n~p~n", [Error, Reply])
     end.
 
-do_move(Sock, Name, Passwd, Who, Game) ->
+do_move(Sock, Name, Passwd, Who, Game, Cookie) ->
     reversi:draw_board(Game),
     M = reversi:check_avail(Game, Who),
     {X, Y, _} = reversi:rand_pick(M),
-    Ready = mk_move(Who, X, Y),
+    Ready = mk_move(Cookie, Who, X, Y),
     Reply = send_cmd(Sock, Ready),
     io:format("~s~n", [binary_to_list(Reply)]),
     case parse_data(Reply) of
         {ok, {your_move, NewGame}} ->
-            do_move(Sock, Name, Passwd, Who, NewGame);
+            do_move(Sock, Name, Passwd, Who, NewGame, Cookie);
         {ok, {please_wait, NewGame}} ->
-            do_wait(Sock, Name, Passwd, Who, NewGame);
+            do_wait(Sock, Name, Passwd, Who, NewGame, Cookie);
         {ok, {game_over, _NewGame, _Win}} ->
             ready(Sock, Name, Passwd);
         Error -> io:format("do_move ~p~n-~n~p~n", [Error, Reply])
@@ -121,11 +121,11 @@ mk_login(Name, Passwd) ->
 mk_ready() ->
     "{i_want_to_play}.".
 
-mk_start(Who) ->
-    io_lib:format("{login,~p}.", [Who]).
+mk_start(Cookie, Who) ->
+    io_lib:format("{login,~p,~p}.", [Cookie, Who]).
 
-mk_move(Who, X, Y) ->
-    io_lib:format("{move,~p,~p,~p}.", [Who, X, Y]).
+mk_move(Cookie, Who, X, Y) ->
+    io_lib:format("{move,~p,~p,~p,~p}.", [Cookie, Who, X, Y]).
 
 
 

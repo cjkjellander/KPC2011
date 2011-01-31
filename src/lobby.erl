@@ -56,12 +56,12 @@ handle_call({cmd, Command}, From, State) ->
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
-handle_cast({game_over, #game{id = ID} = G, _Winner}, State) ->
-    %% TODO: Update player rankings.
+handle_cast({game_over, #game{id = ID} = G, Winner}, LS) ->
     rev_game_db:update_game(G),
     lobby_db:delete_game(ID),
-    {noreply, State};
-handle_cast({game_crash, GameServer, _Black, _White}, State) ->
+    update_ranking(G, Winner),
+    {noreply, LS};
+handle_cast({game_crash, GameServer, _Black, _White}, LS) ->
     %% TODO: Remove game from database (or store crash info?)
     lobby_db:delete_game_server(GameServer),
     {noreply, State};
@@ -148,3 +148,29 @@ handle_client_game_command(#duel{}, _From, _Command, LS) ->
 cookie() ->
     <<A:64>> = crypto:rand_bytes(8),
     A.
+
+update_ranking(#game{player_b = B, player_w = W}, ?B) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(B), rev_bot:read(W), 1, 0),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB);
+update_ranking(#game{player_b = B, player_w = W}, ?W) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(W), rev_bot:read(B), 0, 1),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB);
+update_ranking(#game{player_b = B, player_w = W}, ?E) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(W), rev_bot:read(B), 0.5, 0.5),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB).
+
+
+calc_rank(#rev_bot{rank = Ra} = A, #rev_bot{rank = Rb} = B, ScoreA, ScoreB) ->
+    Qa = math:pow(10, Ra/400),
+    Qb = math:pow(10, Rb/400),
+    Ea = Qa / (Qa + Qb),
+    Eb = Qb / (Qa + Qb),
+
+    %% ranking = old ranking + 32*(score - Expected score).
+    NewRa = Ra + round(32 * (ScoreA - Ea)),
+    NewRb = Rb + round(32 * (ScoreB - Eb)),
+    %%io:format("A: ~p, B: ~p~n", [(ScoreA - Ea),(ScoreB - Eb)]),
+    {A#rev_bot{rank = NewRa}, B#rev_bot{rank = NewRb}}.
