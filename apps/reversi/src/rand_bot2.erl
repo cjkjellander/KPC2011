@@ -20,7 +20,7 @@ login(Sock, Name, Passwd) ->
     case parse_data(Reply) of
         {ok, welcome} -> ready(Sock, Name, Passwd);
         Error -> io:format("login ~p~n", [Error]),
-                 timer:sleep(5000).
+                 timer:sleep(5000),
                  login(Sock, Name, Passwd)
     end.
 
