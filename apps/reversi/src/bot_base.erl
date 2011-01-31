@@ -33,6 +33,7 @@
                 lsock,
                 name = "foo",
                 password = "wQXByFXlAu",
+                cookie,
                 calc_mod = ?DEFAULT_CALC_MOD,
                 color,
                 game,
@@ -82,8 +83,10 @@ connected(State) ->
 %% In the game lobby
 logged_in(#state{game = undefined, lsock = LSock} = State) ->
     case new_game(LSock) of
-        {lets_play, Color, GameId} ->
-            game_created(State#state{color = Color, game = #game{id = GameId}});
+        {lets_play, Color, GameId, Cookie} ->
+            game_created(State#state{color = Color,
+                                     game = #game{id = GameId},
+                                     cookie = Cookie});
         Err  -> Err
     end.
 
@@ -138,13 +141,13 @@ login(#state{lsock = LSock, name = Name, password = Password}) ->
 
 new_game(LSock) ->
     case do_rpc(LSock, {i_want_to_play}) of
-        {ok, {lets_play, _Color, _GameId} = Res} -> Res;
+        {ok, {lets_play, _Color, _GameId, _Cookie} = Res} -> Res;
         {ok,  waiting_for_challenge} -> wait_for_game()
     end.
 
 wait_for_game() ->
     case recv() of
-        {ok, {lets_play, _Color, _GameId} = Res} -> Res;
+        {ok, {lets_play, _Color, _GameId, _Cookie} = Res} -> Res;
         Err                                      -> Err
     end.
 

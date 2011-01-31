@@ -9,6 +9,7 @@
          , client_command/1
          , game_over/2
          , game_crash/4
+         , get_game/1
         ]).
 
 %% gen_server callbacks
@@ -55,6 +56,8 @@ game_crash(Reason, Game, Black, White) ->
     gen_server:cast(reversi_lobby,
                     {game_server_crash, Reason, Game, Black, White}).
 
+get_game(GameId) ->
+    gen_server:call(reversi_lobby, {get_game, GameId}).
 
 %%% gen_server callbacks
 
@@ -64,14 +67,25 @@ init(_Args) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+handle_call({get_game, GameId}, _From, #lobby_state{games=Games}) ->
+    try
+        case lists:keyfind(GameId, #duel.game_id, Games) of
+            #duel{game_server=GameServer} ->
+                game_server:status(GameServer);
+            false -> rev_game_db:get_game(GameId)
+        end
+    catch
+        _:_ -> {error, no_such_game}
+    end;
+
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
-handle_cast({game_over, #game{id = ID} = G, _Winner}, #lobby_state{games = Gs} = LS) ->
-    %% TODO: Update player rankings.
+handle_cast({game_over, #game{id = ID} = G, Winner}, #lobby_state{games = Gs} = LS) ->
     rev_game_db:update_game(G),
+    update_ranking(G, Winner),
     NewGs = lists:keydelete(ID, #duel.game_id, Gs),
     {noreply, LS#lobby_state{games = NewGs}};
 handle_cast({game_crash, GameServer, _Black, _White}, #lobby_state{games = Gs} = LS) ->
@@ -98,34 +112,38 @@ handle_client_command({{game, GameID, Command}, _IP}, From, #lobby_state{games =
             {reply, {error, unknown_game}, LS}
     end;
 
-handle_client_command({{login, User, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
+handle_client_command({{login, Bot, Passwd}, IP}, From, #lobby_state{players = Ps} = LS) ->
     check_inputs,
-    case rev_bot:login(User, Passwd, IP) of
+    case rev_bot:login(Bot, Passwd, IP) of
         {ok, _} ->
-            {reply, {ok, welcome}, LS#lobby_state{players = [From | Ps]}};
+            {reply, {ok, welcome}, LS#lobby_state{players = [{From, Bot} | Ps]}};
         Error   ->
             {reply, Error, LS}
     end;
 
 handle_client_command({{logout}, _IP}, {From,_}, #lobby_state{players = Ps, ready = RPs} = LS) ->
-    {reply, good_bye, LS#lobby_state{players = lists:delete(From, Ps),
+    {reply, good_bye, LS#lobby_state{players = lists:keydelete(From, 1, Ps),
                                      ready = lists:delete(From, RPs)}};
 
-handle_client_command({{register, User, Player, Desc, Email}, IP},
+handle_client_command({{register, Bot, Player, Desc, Email}, IP},
                       From, #lobby_state{players = Ps} = LS) ->
     check_inputs,
-    case rev_bot:register(User, Player, Desc, Email, IP, []) of
+    case rev_bot:register(Bot, Player, Desc, Email, IP, []) of
         {ok, PW} ->
-            {reply, {ok, {password, PW}}, LS#lobby_state{players = [From | Ps]}};
+            {reply, {ok, {password, PW}}, LS#lobby_state{players = [{From,Bot}| Ps]}};
         Error    ->
             {reply, Error, LS}
     end;
 
-handle_client_command({{i_want_to_play}, _IP}, {From, _}, #lobby_state{ready = RPs, games = Gs} = LS) ->
+handle_client_command({{i_want_to_play}, _IP}, {From, _},
+                      #lobby_state{players = Ps, ready = RPs, games = Gs} = LS) ->
     case RPs of
         [OtherPlayer | Ps] ->
             %% Opponent found, set up a new game!
-            {ok, Game} = rev_game_db:new_game(),
+            {_NameB, BotB} = lists:keyfind(OtherPlayer, 1, Ps),
+            {_NameW, BotW} = lists:keyfind(From, 1, Ps),
+            {ok, Game} = (rev_game_db:new_game())#game{player_b = BotB,
+                                                       player_w = BotW},
             GameID = Game#game.id,
             B = cookie(),
             W = cookie(),
@@ -158,3 +176,29 @@ handle_client_game_command(#duel{}, _From, _Command, LS) ->
 cookie() ->
     <<A:64>> = crypto:rand_bytes(8),
     A.
+
+update_ranking(#game{player_b = B, player_w = W}, ?B) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(B), rev_bot:read(W), 1, 0),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB);
+update_ranking(#game{player_b = B, player_w = W}, ?W) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(W), rev_bot:read(B), 0, 1),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB);
+update_ranking(#game{player_b = B, player_w = W}, ?E) ->
+    {BotA, BotB} = calc_rank(rev_bot:read(W), rev_bot:read(B), 0.5, 0.5),
+    rev_bot:write(BotA),
+    rev_bot:write(BotB).
+
+
+calc_rank(#rev_bot{rank = Ra} = A, #rev_bot{rank = Rb} = B, ScoreA, ScoreB) ->
+    Qa = math:pow(10, Ra/400),
+    Qb = math:pow(10, Rb/400),
+    Ea = Qa / (Qa + Qb),
+    Eb = Qb / (Qa + Qb),
+
+    %% ranking = old ranking + 32*(score - Expected score).
+    NewRa = Ra + round(32 * (ScoreA - Ea)),
+    NewRb = Rb + round(32 * (ScoreB - Eb)),
+    %%io:format("A: ~p, B: ~p~n", [(ScoreA - Ea),(ScoreB - Eb)]),
+    {A#rev_bot{rank = NewRa}, B#rev_bot{rank = NewRb}}.

@@ -15,5 +15,7 @@ clean:
 distclean: clean
 	@./rebar delete-deps
 
-docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+# docs:
+# 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+bootscripts: beams
+	erl -pa ./apps/reversi/ebin/ -noshell -eval 'systools:make_script("reversi-0.1", [local]).' -s init stop
