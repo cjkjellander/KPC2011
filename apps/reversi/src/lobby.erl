@@ -86,8 +86,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({game_over, #game{id = ID} = G, Winner}, LS) ->
     rev_game_db:update_game(G),
     lobby_db:delete_game(ID),
-    %% FIXME player_w, player_b are undefined and cause update_ranking to crash
-    %% update_ranking(G, Winner),
+    update_ranking(G, Winner),
     {noreply, LS};
 handle_cast({game_crash, GameServer, _Black, _White}, LS) ->
     %% TODO: Remove game from database (or store crash info?)
