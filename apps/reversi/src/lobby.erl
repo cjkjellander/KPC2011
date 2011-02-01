@@ -104,9 +104,9 @@ handle_cast({game_over, #game{id = ID} = G, Winner}, LS) ->
     lobby_db:delete_game(ID),
     update_ranking(G, Winner),
     {noreply, LS};
-handle_cast({game_crash, GameServer, _Black, _White}, LS) ->
+handle_cast({game_crash, Game, _Black, _White}, LS) ->
     %% TODO: Remove game from database (or store crash info?)
-    lobby_db:delete_game_server(GameServer),
+    lobby_db:delete_game_server(Game),
     {noreply, LS};
 handle_cast(_Request, State) ->
     {noreply, State}.
