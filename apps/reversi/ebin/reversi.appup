@@ -1,6 +1,8 @@
 {"0.2",
  [{"0.1", [{load_module, lobby},
-           {load_module, client_handler_tcp}]}],
+           {load_module, client_handler_tcp},
+           {load_module, lobby_db}]}],
  [{"0.1", [{load_module, lobby},
-           {load_module, client_handler_tcp}]}]
+           {load_module, client_handler_tcp},
+           {load_module, lobby_db}]}]
 }.
