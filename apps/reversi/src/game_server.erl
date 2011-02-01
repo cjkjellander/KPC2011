@@ -169,11 +169,11 @@ handle_sync_event({board}, _From, StateName, #game_state{game = G} = GS) ->
 handle_sync_event({opponent}, From, StateName,
                   #game_state{black=#who{pid=From},
                               white=#who{pid=Opponent}} = GS) ->
-    {reply, Opponent, StateName, GS};
+    {reply, {ok, Opponent}, StateName, GS};
 handle_sync_event({opponent}, From, StateName,
                   #game_state{black=#who{pid=Opponent},
                               white=#who{pid=From}}= GS) ->
-    {reply, Opponent, StateName, GS};
+    {reply, {ok, Opponent}, StateName, GS};
 handle_sync_event(_Event, _From, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
