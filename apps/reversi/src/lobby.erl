@@ -100,7 +100,7 @@ handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 handle_cast({game_over, #game{id = ID} = G, Winner}, LS) ->
-    rev_game_db:update_game(G),
+    rev_game_db:update_game(G#game{end_time = time()}),
     lobby_db:delete_game(ID),
     update_ranking(G, Winner),
     {noreply, LS};
@@ -171,7 +171,7 @@ handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
             {ok, GameServer} = game_server_sup:start_game_server(GameID,B,W),
             G = #duel{game_id = GameID,
                       game_server = GameServer,
-                      game_data = Game,
+                      game_data = Game#game{start_time = time()},
                       black = B,
                       white = W
                      },
