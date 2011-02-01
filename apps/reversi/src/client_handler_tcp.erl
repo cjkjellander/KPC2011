@@ -98,6 +98,9 @@ handle_response(good_bye, Socket, _State) ->
     send_msg(Socket, "good_bye"),
     gen_tcp:close(Socket),
     exit(normal);
+handle_response(help_text, Socket, State) ->
+    send_msg(Socket, help_text()),
+    State;
 handle_response(Response, Socket, State) ->
     send_msg(Socket, term_to_string(Response)),
     State.
@@ -109,3 +112,24 @@ term_to_string(Term) ->
 
 send_msg(Socket, Msg) ->
     gen_tcp:send(Socket, Msg ++ "\n").
+
+
+help_text() ->
+    ""
+        "LOBBY COMMANDS\n"
+        "help. | {help}. -> [This help text]\n"
+        "{register,BotName,PlayerName,BotDescription,PlayerEmail}. -> {ok,{password,Password}}\n"
+        "{login,BotName,Password}. -> {ok, welcome}\n"
+        "{bot_rank,BotName}. -> {ok,BotRank} [Sorry, this command doesn't work just yet]\n"
+        "{list_bots}. -> {ok,Bots}\n"
+        "{i_want_to_play}. -> {ok,waiting_for_challenge} | {ok,{lets_play,YourColor,GameId,Cookie}}\n"
+        "{logout}. -> good_bye\n"
+        "\n"
+        "GAME COMMANDS\n"
+        "{login,Cookie,Color}. -> {ok,{your_move,Game}} | {ok,{please_wait,Game}} | {ok,wait_for_other_guy}\n"
+        "{move,Cookie,Color,X,Y}. -> {ok,{please_wait,Game}} | {game_over,GameState,Winner}\n"
+        "    Sent after opponent move: {ok,{your_move,Game}} | {game_over,GameState,Winner}\n"
+        "{available_moves,Game,Color}. -> {ok,AvailableMoves}\n"
+        "{game_status}. -> {ok,GameStatus}\n"
+        "{board}. -> {ok,Board}\n"
+        "{opponent}. -> {ok,Opponent}\n".

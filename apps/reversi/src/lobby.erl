@@ -121,6 +121,9 @@ terminate(_Reason, _State) ->
 
 %%% Internal functions
 
+handle_client_command({Help, _IP}, From, State) when Help =:= {help} orelse Help =:= help ->
+    {reply, help_text, State};
+
 handle_client_command({{game, GameID, Command}, _IP}, From, State) ->
     case lobby_db:read_game(GameID) of
         [G = #duel{}] ->
