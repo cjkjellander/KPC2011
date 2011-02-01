@@ -23,7 +23,7 @@ content_types_provided(ReqData, State) ->
 resource_exists(ReqData, State) ->
     try
         BotName = wrq:path_info(bot_name, ReqData),
-        {ok, Bot} = rev_bot:read(BotName),
+        {ok, Bot} = lobby:get_bot(BotName),
         {true, ReqData, [{bot, Bot}|State]}
     catch
         _:_ -> {false, ReqData, State}
