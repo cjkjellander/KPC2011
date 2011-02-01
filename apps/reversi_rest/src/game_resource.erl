@@ -29,9 +29,8 @@ resource_exists(ReqData, State) ->
 to_json(ReqData, State) ->
     Game = proplists:get_value(game, State),
     GameId = Game#game.id,
-    %% TODO convert to timestamps
-    StartTime = Game#game.start_time,
-    EndTime = Game#game.end_time,
+    StartTime = unix_timestamp(Game#game.start_time),
+    EndTime = unix_timestamp(Game#game.end_time),
     Turn = color(Game#game.togo),
     BotBlack = Game#game.player_b,
     BotWhite = Game#game.player_w,
@@ -45,8 +44,8 @@ to_json(ReqData, State) ->
                   [{"rel", <<"self">>},
                    {"href", uri(GameId)}
                   ]}},
-                {"start_time", unix_timestamp(StartTime)},
-                {"end_time", unix_timestamp(EndTime)},
+                {"start_time", StartTime},
+                {"end_time", EndTime},
                 {"turn", Turn},
                 {"bot", {struct,
                          [{"color", color(?B)},
@@ -80,9 +79,9 @@ color(?W) ->
     <<"white">>.
 
 unix_timestamp(undefined) ->
-    %% FIXME: Temporary bandage, we're getting 'undefined' here for some reason
-    %% Remove this whole clause when figured out.
-    <<"undefined">>;
+  %% start_time should never be undefined, but it would be normal for an ongoing
+  %% game to have end_time = undefined, and thats ok
+    <<"">>;
 unix_timestamp({MegaSecs, Secs, _MicroSecs}) ->
     UnixTime = MegaSecs * 1000000 + Secs,
     list_to_binary(integer_to_list(UnixTime)).
