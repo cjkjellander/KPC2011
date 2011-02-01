@@ -79,6 +79,10 @@ color(?B) ->
 color(?W) ->
     <<"white">>.
 
+unix_timestamp(undefined) ->
+    %% FIXME: Temporary bandage, we're getting 'undefined' here for some reason
+    %% Remove this whole clause when figured out.
+    <<"undefined">>;
 unix_timestamp({MegaSecs, Secs, _MicroSecs}) ->
     UnixTime = MegaSecs * 1000000 + Secs,
     list_to_binary(integer_to_list(UnixTime)).
