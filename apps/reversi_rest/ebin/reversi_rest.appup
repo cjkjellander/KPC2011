@@ -1,6 +1,4 @@
-{"0.2",
- [{"0.1", [{restart_application, reversi_rest}]}],
- [{"0.1", [{delete_module, endpoint_resource},
-           {delete_module, bots_resource},
-           {restart_application, reversi_rest}]}]
+{"0.3",
+ [{"0.2", [{restart_application, reversi_rest}]}],
+ [{"0.2", [{restart_application, reversi_rest}]}]
 }.

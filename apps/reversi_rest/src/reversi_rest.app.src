@@ -2,7 +2,7 @@
 {application, reversi_rest,
  [
   {description, "reversi_rest"},
-  {vsn, "0.2"},
+  {vsn, "0.3"},
   {modules, []},
   {registered, []},
   {applications, [
