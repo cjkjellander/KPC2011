@@ -61,15 +61,12 @@ add_game(#duel{} = Game) ->
 delete_game(Id) ->
     transaction(fun() -> delete_t(?GAMES, Id) end).
 
-delete_game_server(GameServer) ->
-    MaybeDelete = fun(#duel{ game_id = Id} = Duel, Count) ->
-                          case Duel#duel.game_server of
-                              GameServer ->
-                                  delete_game(Id),
-                                  Count + 1;
-                              _ ->
-                                  Count
-                          end
+delete_game_server(Game) ->
+    MaybeDelete = fun(#duel{ game_id = Id, game_data = G}, Count) when G =:= Game ->
+                          delete_game(Id),
+                          Count + 1;
+                     (_Duel, Count) ->
+                          Count
                   end,
     Drop = fun() ->
                    mnesia:foldl(MaybeDelete, 0, ?GAMES)
