@@ -19,9 +19,9 @@ releaseclean:
 
 releaseupgrade: release
 	./rebar generate-upgrade previous_release=live
-	cp rel/reversi_*.tar.gz rel/live/releases/
 	@echo
-	@echo "# Now use release_handler in the running erlang console for the deploy:"
+	@echo "# copy rel/reversi_Vsn.tar.gz to reversi/releases/ on live"
+	@echo "# use release_handler in the running erlang console for the deploy:"
 	@echo "erl> release_handler:unpack_release(\"reversi_UpdateVsn\")."
 	@echo "erl> release_handler:install_release(\"UpdateVsn\")."
 	@echo "erl> release_handler:make_permanent(\"UpdateVsn\")."
