@@ -14,8 +14,6 @@
 %% Info API
 -export([
          get_game/1,
-         list_games/0,
-         list_bots/0,
          get_bot/1
         ]).
 
@@ -53,12 +51,6 @@ game_crash(Reason, Game, Black, White) ->
 get_game(GameId) ->
     gen_server:call(reversi_lobby, {get_game, GameId}).
 
-list_games() ->
-    gen_server:call(reversi_lobby, {list_games}).
-
-list_bots() ->
-    gen_server:call(reversi_lobby, {list_bots}).
-
 get_bot(BotName) ->
     gen_server:call(reversi_lobby, {get_bot, BotName}).
 
@@ -77,14 +69,6 @@ handle_call({get_game, GameID}, _From, State) ->
         [] ->
             {reply, rev_game_db:get_game(GameID), State}
     end;
-
-handle_call({list_games}, _From, State) ->
-    Current = [Id || #duel{game_id = Id} <- lobby_db:list_games()],
-    {ok, Previous} = rev_game_db:list_games(),
-    {reply, {ok, Current++Previous}, State};
-
-handle_call({list_bots}, _From, State) ->
-    {reply, {ok, rev_bot:list_bots()}, State};
 
 handle_call({get_bot, BotName}, _From, State) ->
     try
@@ -156,6 +140,14 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
         Error    ->
             {reply, Error, State}
     end;
+
+handle_client_command({{list_games}, _IP}, _From, State) ->
+    Current = [Id || #duel{game_id = Id} <- lobby_db:list_games()],
+    {ok, Previous} = rev_game_db:list_games(),
+    {reply, {ok, Current++Previous}, State};
+
+handle_client_command({{list_bots}, _IP}, _From, State) ->
+    {reply, {ok, rev_bot:list_bots()}, State};
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
     case lobby_db:find_ready_player() of
