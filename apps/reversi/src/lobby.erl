@@ -16,7 +16,7 @@
          get_game/1,
          list_games/0,
          list_bots/0,
-         bot_rank/1
+         get_bot/1
         ]).
 
 %% gen_server callbacks
@@ -59,8 +59,8 @@ list_games() ->
 list_bots() ->
     gen_server:call(reversi_lobby, {list_bots}).
 
-bot_rank(BotName) ->
-    gen_server:call(reversi_lobby, {bot_rank, BotName}).
+get_bot(BotName) ->
+    gen_server:call(reversi_lobby, {get_bot, BotName}).
 
 %%% gen_server callbacks
 
@@ -86,13 +86,13 @@ handle_call({list_games}, _From, State) ->
 handle_call({list_bots}, _From, State) ->
     {reply, {ok, rev_bot:list_bots()}, State};
 
-%% TODO remove this one and add get_bot instead
-handle_call({bot_rank, BotName}, _From, State) ->
-    Reply = case rev_bot:try_read(BotName) of
-                []                   -> {error, does_not_exist};
-                [#rev_bot{rank = R}] -> {ok, R}
-            end,
-    {reply, Reply, State};
+handle_call({get_bot, BotName}, _From, State) ->
+    try
+        Bot = rev_bot:read(BotName),
+        {reply, {ok, Bot}, State}
+    catch
+        _:_ -> {reply, {error, no_such_bot}, State}
+    end;
 
 handle_call({cmd, Command}, From, State) ->
     handle_client_command(Command, From, State);
