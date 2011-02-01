@@ -1,7 +1,7 @@
 {application, reversi,
  [
   {description, "Erlang Reversi server (Klarna Programming Contest)"},
-  {vsn, "0.2"},
+  {vsn, "0.3"},
   {modules,
    [
     bot,

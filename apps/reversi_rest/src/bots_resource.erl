@@ -27,7 +27,7 @@ to_json(ReqData, State) ->
             ] ++
             [{"bot",
               {struct,
-               [{"name", Name},
+               [{"name", list_to_binary(Name)},
                 {"link",
                  {struct,
                   [{"rel", <<"self">>},
