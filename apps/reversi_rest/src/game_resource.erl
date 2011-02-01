@@ -26,12 +26,16 @@ resource_exists(ReqData, State) ->
         _:_ -> {false, ReqData, State}
     end.
 
+unixtime(TS) ->
+  calendar:datetime_to_gregorian_seconds(calendar:now_to_universal_time(TS))
+    - calendar:datetime_to_gregorian_seconds( {{1970,1,1},{0,0,0}} ).
+
 to_json(ReqData, State) ->
     Game = proplists:get_value(game, State),
     GameId = Game#game.id,
     %% TODO convert to timestamps
-    StartTime = Game#game.start_time,
-    EndTime = Game#game.end_time,
+    StartTime = integer_to_list(unixtime(Game#game.start_time)),
+    EndTime = integer_to_list(unixtime(Game#game.end_time)),
     Turn = color(Game#game.togo),
     BotBlack = Game#game.player_b,
     BotWhite = Game#game.player_w,

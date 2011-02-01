@@ -49,11 +49,7 @@ to_json(ReqData, State) ->
              {"rank", Rank},
              {"player",
               {struct,
-               [{"link",
-                 {struct,
-                  [{"rel", <<"self">>},
-                   {"href", player_resource:uri(Player)}
-                  ]}}
+               [{"name", list_to_binary(Player)}
                ]}},
              {"games",
               {struct,
