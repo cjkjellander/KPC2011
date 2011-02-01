@@ -6,3 +6,4 @@ Mnesia.*
 erl_crash.dump
 rel/
 deps/*
+reversi_rest.app
