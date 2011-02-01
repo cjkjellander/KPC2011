@@ -45,8 +45,8 @@ to_json(ReqData, State) ->
                   [{"rel", <<"self">>},
                    {"href", uri(GameId)}
                   ]}},
-                {"start_time", StartTime},
-                {"end_time", EndTime},
+                {"start_time", unix_timestamp(StartTime)},
+                {"end_time", unix_timestamp(EndTime)},
                 {"turn", Turn},
                 {"bot", {struct,
                          [{"color", color(?B)},
@@ -78,3 +78,7 @@ color(?B) ->
     <<"black">>;
 color(?W) ->
     <<"white">>.
+
+unix_timestamp({MegaSecs, Secs, _MicroSecs}) ->
+    UnixTime = MegaSecs * 1000000 + Secs,
+    list_to_binary(integer_to_list(UnixTime)).
