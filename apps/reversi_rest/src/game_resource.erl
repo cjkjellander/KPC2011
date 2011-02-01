@@ -63,14 +63,14 @@ to_json(ReqData, State) ->
                                     [{"rel", <<"self">>},
                                      {"href", bot_resource:uri(BotWhite)}
                                     ]}}
-                         ]}} %% ,
-               %% {"board", {struct,
-               %%            [{"link", {struct,
-               %%                       [{"rel", <<"self">>},
-               %%                        {"href", board_resource:uri(GameId)}
-               %%                       ]}}
-               %%            ]}}
-              ]}}
+                         ]}},
+                {"board", {struct,
+                           [{"link", {struct,
+                                      [{"rel", <<"self">>},
+                                       {"href", gameboard_resource:uri(GameId)}
+                                      ]}}
+                           ]}}
+               ]}}
             ]},
     {mochijson2:encode(Json), ReqData, State}.
 
