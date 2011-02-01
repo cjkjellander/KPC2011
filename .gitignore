@@ -5,3 +5,4 @@ Mnesia.*
 *.script
 erl_crash.dump
 rel/
+deps/*
