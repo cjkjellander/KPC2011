@@ -92,8 +92,9 @@ add_player(Pid, Name) when is_pid(Pid) ->
             end,
     transaction(Write).
 
-read_player(Id) ->
-    read_d(?PLAYERS, Id).
+read_player(Pid) ->
+    [Player] = read_d(?PLAYERS, Pid),
+    Player.
 
 delete_player(Pid) ->
     Delete = fun() ->

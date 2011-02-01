@@ -71,15 +71,11 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 handle_call({get_game, GameID}, _From, State) ->
-    try
-        Game =
-            case lobby_db:read_game(GameID) of
-                #duel{game_server=GameServer} -> game_server:status(GameServer);
-                false                         -> rev_game_db:get_game(GameID)
-            end,
-        {reply, Game, State}
-    catch
-        _:_ -> {reply, {error, no_such_game}, State}
+    case lobby_db:read_game(GameID) of
+        [#duel{game_server=GameServer}] ->
+            {reply, game_server:status(GameServer), State};
+        [] ->
+            {reply, rev_game_db:get_game(GameID), State}
     end;
 
 handle_call({list_games}, _From, State) ->
@@ -160,9 +156,10 @@ handle_client_command({{register, User, Player, Desc, Email}, IP},
 
 handle_client_command({{i_want_to_play}, _IP}, {From, _}, State) ->
     case lobby_db:find_ready_player() of
-        [#player{pid=OtherPlayer}] ->
+        [#player{pid=OtherPlayer, name=OtherName}] ->
+            #player{name=Name} = lobby_db:read_player(From),
             %% Opponent found, set up a new game!
-            {ok, Game} = rev_game_db:new_game(),
+            {ok, Game} = rev_game_db:new_game(OtherName, Name),
             GameID = Game#game.id,
             B = cookie(),
             W = cookie(),

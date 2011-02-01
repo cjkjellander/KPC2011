@@ -37,38 +37,40 @@ to_json(ReqData, State) ->
     BotWhite = Game#game.player_w,
 
     Json = {struct,
-            ["game",
-             {struct,
-              [{"id", GameId},
-               {"link",
-                {struct,
-                 [{"rel", <<"self">>},
-                  {"href", uri(GameId)}
-                 ]}},
-               {"start_time", StartTime},
-               {"end_time", EndTime},
-               {"turn", Turn},
-               {"bot", {struct,
-                        [{"color", color(?B)},
-                         {"link", {struct,
-                                   [{"rel", <<"self">>},
-                                    {"href", bot_resource:uri(BotBlack)}
-                                   ]}}
-                        ]}},
-               {"bot", {struct,
-                        [{"color", color(?W)},
-                         {"link", {struct,
-                                   [{"rel", <<"self">>},
-                                    {"href", bot_resource:uri(BotWhite)}
-                                   ]}}
-                        ]}},
-               {"board", {struct,
-                          [{"link", {struct,
-                                     [{"rel", <<"self">>},
-                                      {"href", board_resource:uri(GameId)}
-                                     ]}}
-                          ]}}
-              ]}
+            [{"game",
+              {struct,
+               [{"id", GameId},
+                {"link",
+                 {struct,
+                  [{"rel", <<"self">>},
+                   {"href", uri(GameId)}
+                  ]}},
+                {"start_time", StartTime},
+                {"end_time", EndTime},
+                {"turn", Turn},
+                {"bot", {struct,
+                         [{"color", color(?B)},
+                          {"name", list_to_binary(BotBlack)},
+                          {"link", {struct,
+                                    [{"rel", <<"self">>},
+                                     {"href", bot_resource:uri(BotBlack)}
+                                    ]}}
+                         ]}},
+                {"bot", {struct,
+                         [{"color", color(?W)},
+                          {"name", list_to_binary(BotWhite)},
+                          {"link", {struct,
+                                    [{"rel", <<"self">>},
+                                     {"href", bot_resource:uri(BotWhite)}
+                                    ]}}
+                         ]}} %% ,
+               %% {"board", {struct,
+               %%            [{"link", {struct,
+               %%                       [{"rel", <<"self">>},
+               %%                        {"href", board_resource:uri(GameId)}
+               %%                       ]}}
+               %%            ]}}
+              ]}}
             ]},
     {mochijson2:encode(Json), ReqData, State}.
 
