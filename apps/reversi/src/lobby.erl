@@ -81,7 +81,8 @@ handle_call({get_game, GameID}, _From, State) ->
 handle_call({list_games}, _From, State) ->
     Current = [Id || #duel{game_id = Id} <- lobby_db:list_games()],
     {ok, Previous} = rev_game_db:list_games(),
-    {reply, {ok, Current++Previous}, State};
+    GameIds = lists:merge(lists:sort(Current), lists:sort(Previous)),
+    {reply, {ok, GameIds}, State};
 
 handle_call({list_bots}, _From, State) ->
     {reply, {ok, rev_bot:list_bots()}, State};
