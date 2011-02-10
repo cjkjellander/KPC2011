@@ -10,6 +10,9 @@
         ]).
 
 
+-define(HOST, "localhost").
+-define(PORT, 7676).
+
 %%% Supervisor callbacks
 
 init(_Args) ->
@@ -19,7 +22,8 @@ init(_Args) ->
        [
         servers_sup_child_spec(),
         client_handler_sup_child_spec(),
-        game_server_sup_child_spec()
+        game_server_sup_child_spec(),
+        rand_bot_sup_child_spec(?HOST, ?PORT)
        ]
      }}.
 
@@ -61,4 +65,14 @@ game_server_sup_child_spec() ->
       5000,
       supervisor,
       [game_server_sup]
+    }.
+
+rand_bot_sup_child_spec(Host, Port) ->
+    {
+      rand_bot_sup,
+      {rand_bot_sup, start_link, [Host, Port]},
+      permanent,
+      5000,
+      supervisor,
+      [rand_bot_sup]
     }.
