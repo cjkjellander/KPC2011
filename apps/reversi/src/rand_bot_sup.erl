@@ -6,38 +6,41 @@
 
 %% API
 -export([
-         start_link/4
+         start_link/2,
+         start_rand_bot/2
         ]).
 
 
 %%% Supervisor callbacks
 
-init({Host, Port, Name, Passwd}) ->
+init({Host, Port}) ->
     {ok,
      {
-       {rest_for_one, 2, 2000},
+       {simple_for_one, 2, 2000},
        [
-        servers_sup_child_spec(Host, Port, Name, Passwd)
+        rand_bot_child_spec(Host, Port)
        ]
      }}.
 
 
 %%% API
 
-start_link(Host, Port, Name, Passwd) ->
-    supervisor:start_link({local, reversi_supervisor}, ?MODULE,
-                         {Host, Port, Name, Passwd}).
+start_link(Host, Port) ->
+    supervisor:start_link({local, reversi_rand_bot_supervisor}, ?MODULE,
+                          {Host, Port}).
+
+start_rand_bot(Name, Password) ->
+    supervisor:start_child(reversi_rand_bot_supervisor, [Name, Password]).
 
 
 %%% Internal functions
 
-
-servers_sup_child_spec(Host, Port, Name, Passwd) ->
+rand_bot_child_spec(Host, Port) ->
     {
-      rand_bot,
-      {rand_bot, start, [Host, Port, Name, Passwd]},
+      rand_bot2,
+      {rand_bot2, start, [Host, Port]},
       permanent,
       5000,
-      supervisor,
-      [rand_bot]
+      worker,
+      [rand_bot2]
     }.
