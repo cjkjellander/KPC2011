@@ -27,12 +27,13 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start(Server) ->
-    register(?MODULE, spawn(?MODULE, init, [Server], [])).
+    register(?MODULE, spawn(?MODULE, init, [Server])).
 
 start_link(Server) ->
-    register(?MODULE, spawn_link(?MODULE, init, [Server], [])).
+    register(?MODULE, spawn_link(?MODULE, init, [Server])).
 
-init([Server]) ->
+init(Server) ->
+    io:format("1~n"),
     LSock = connect(Server),
     reg(LSock),
     login(LSock),
