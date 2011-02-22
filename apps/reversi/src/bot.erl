@@ -50,7 +50,9 @@ play(#state{lsock = LSock, game = Game} = State) ->
     end.
 
 connect(Server) ->
-    gen_tcp:connect(Server, ?PORT, []).
+    {ok, LSock} = gen_tcp:connect(Server, ?PORT, []),
+    LSock.
+
 
 reg(LSock) ->
     Name = "foo",
